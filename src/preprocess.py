@@ -223,9 +223,9 @@ def preprocess_spd_dataset(ds, chunk_duration):
         batched=True,
         batch_size=1,
         remove_columns=ds["train"].column_names,
-        num_proc=24,
+        num_proc=1,
     )
-    processed_spd_dataset["train"] = processed_spd_dataset["train"].shuffle(seed=42)
+    # processed_spd_dataset["train"] = processed_spd_dataset["train"].shuffle(seed=42)
 
     processed_spd_dataset["validation"] = ds["validation"].map(
         lambda file: preprocess.chunk_file(
@@ -249,7 +249,6 @@ def preprocess_spd_dataset(ds, chunk_duration):
 
     return processed_spd_dataset
 
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -257,10 +256,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    ds = load_dataset("kamilakesbi/real_ami_ihm", num_proc=12)
+    ds = load_dataset("kamilakesbi/ami_spd_nobatch", num_proc=12)
 
     processed_dataset = preprocess_spd_dataset(
         ds, chunk_duration=int(args.chunk_duration)
     )
 
-    # processed_dataset.push_to_hub("kamilakesbi/real_ami_processed_sc")
+    processed_dataset.push_to_hub("kamilakesbi/real_ami_processed_sc2")

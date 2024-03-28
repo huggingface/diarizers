@@ -14,7 +14,7 @@ from denoiser import pretrained
 from denoiser.dsp import convert_audio
 
 
-class ASR_to_SPD_dataset:
+class SyntheticDataset:
     """_summary_"""
 
     def __init__(
@@ -341,7 +341,7 @@ def create_spd_dataset_from_asr(
 
     asr_dataset.select_columns([str(speaker_column_name), str(audio_column_name)])
 
-    asr_to_spd = ASR_to_SPD_dataset(config)
+    asr_to_spd = SyntheticDataset(config)
 
     for subset in subsets:
 

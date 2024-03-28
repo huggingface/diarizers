@@ -12,7 +12,7 @@ from pyannote.audio.torchmetrics import (
     MissedDetectionRate,
     SpeakerConfusionRate,
 )
-from models.segmentation.pretrained_model import SegmentationModel, SegmentationModelConfig
+from src.models.segmentation.pretrained_model import SegmentationModel, SegmentationModelConfig
 
 
 class Test:

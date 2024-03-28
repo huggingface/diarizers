@@ -72,7 +72,7 @@ if __name__ == "__main__":
     seg_task.model = pretrained
 
     synthetic_ami_dataset_processed = load_dataset(
-        "kamilakesbi/ami_spd_nobatch_processed_sc"
+        "kamilakesbi/real_ami_processed_sc"
     )
 
     sanity_checks()
