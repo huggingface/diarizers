@@ -225,7 +225,7 @@ def preprocess_spd_dataset(ds, chunk_duration):
         remove_columns=ds["train"].column_names,
         num_proc=1,
     )
-    # processed_spd_dataset["train"] = processed_spd_dataset["train"].shuffle(seed=42)
+    processed_spd_dataset["train"] = processed_spd_dataset["train"].shuffle(seed=42)
 
     processed_spd_dataset["validation"] = ds["validation"].map(
         lambda file: preprocess.chunk_file(
