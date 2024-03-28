@@ -61,7 +61,7 @@ def sanity_checks():
 if __name__ == "__main__":
 
     registry.load_database(
-        "/home/kamil/projects/AMI-diarization-setup/pyannote/database.yml"
+        "/home/kamil/datasets/AMI-diarization-setup/pyannote/database.yml"
     )
     ami = registry.get_protocol("AMI.SpeakerDiarization.only_words")
 

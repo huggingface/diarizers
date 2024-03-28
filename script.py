@@ -4,7 +4,7 @@ import os
 from datasets import load_dataset
 from metrics import Metrics
 from models.segmentation.pretrained_model import SegmentationModel, SegmentationModelConfig
-from datasets_scripts.preprocessing import preprocess_spd_dataset
+from preprocess import preprocess_spd_dataset
 from transformers import Trainer, TrainingArguments
 
 from collator import DataCollator
