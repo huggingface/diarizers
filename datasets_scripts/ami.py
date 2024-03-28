@@ -15,7 +15,6 @@ augmentation_pipeline = Compose(
     ]
 )
 
-
 def add_silent_regions(
     audio_file, sr, file_timestamps_start, file_timestamps_end, duration, p
 ):
