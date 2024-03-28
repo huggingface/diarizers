@@ -19,9 +19,17 @@ class SyntheticDataset:
 
     def __init__(
         self,
+        input_dataset,
+        speaker_column_name,
+        audio_column_name,
         config,
     ):
+        self.input_dataset = input_dataset
+        self.speaker_column_name = speaker_column_name
+        self.audio_column_name = audio_column_name
+
         self.audio_file_length = config["audio_file_length"]
+        self.batch_size = config["batch_size"]
         self.std_concatenate = config["std_concatenate"]
         self.sample_rate = config["sample_rate"]
         self.refine_with_vad = config["refine_with_vad"]
@@ -31,6 +39,7 @@ class SyntheticDataset:
         self.silent_regions = config["silent_regions"]["silent_regions"]
         self.silence_duration = config["silent_regions"]["silence_duration"]
         self.silence_proba = config["silent_regions"]["silence_proba"]
+
 
         if self.denoise:
             self.denoiser = pretrained.dns64().cuda()
@@ -190,7 +199,7 @@ class SyntheticDataset:
 
         return extended_audio_file, file_timestamps_start, file_timestamps_end
 
-    def concatenate_no_timestamps(
+    def concatenate(
         self,
         files,
     ):
@@ -307,82 +316,76 @@ class SyntheticDataset:
         return new_batch
 
 
-def create_spd_dataset_from_asr(
-    asr_dataset,
-    speaker_column_name,
-    audio_column_name,
-    config,
-    batch_size,
-    num_proc=1,
-):
-    """_summary_
+    def create_spd_dataset(
+        self, 
+        num_proc=1, 
+    ):
+        """_summary_
 
-    Args:
-        asr_dataset (_type_): _description_
-        speaker_column_name (_type_): _description_
-        audio_column_name (_type_): _description_
-        config (_type_): _description_
-        batch_size (_type_): _description_
-        num_proc (int, optional): _description_. Defaults to 12.
+        Args:
+            asr_dataset (_type_): _description_
+            speaker_column_name (_type_): _description_
+            audio_column_name (_type_): _description_
+            config (_type_): _description_
+            batch_size (_type_): _description_
+            num_proc (int, optional): _description_. Defaults to 12.
 
-    Returns:
-        _type_: _description_
-    """
+        Returns:
+            _type_: _description_
+        """
 
-    subsets = ["train", "validation", "test"]
+        subsets = ["train", "validation", "test"]
 
-    speaker_diarization_dataset = DatasetDict(
-        {
-            "train": Dataset.from_dict({}),
-            "validation": Dataset.from_dict({}),
-            "test": Dataset.from_dict({}),
-        }
-    )
-
-    asr_dataset.select_columns([str(speaker_column_name), str(audio_column_name)])
-
-    asr_to_spd = SyntheticDataset(config)
-
-    for subset in subsets:
-
-        concatenate_dataset = Dataset.from_dict(
-            {"audio": [], "speakers": [], "timestamps_start": [], "timestamps_end": []}
+        self.spd_dataset = DatasetDict(
+            {
+                "train": Dataset.from_dict({}),
+                "validation": Dataset.from_dict({}),
+                "test": Dataset.from_dict({}),
+            }
         )
 
-        # asr_dataset[str(subset)] = asr_dataset[str(subset)].shuffle().select(range(30))
-        speakers = set(asr_dataset[str(subset)]["client_id"])
+        self.dataset.select_columns([str(speaker_column_name), str(audio_column_name)])
 
-        # while len(speakers) > 5:
-        # n_speakers = random.randint(3, 10)
-        # sampled_speakers = random.sample(speakers, min(n_speakers, len(speakers)))
+        for subset in subsets:
 
-        # dataset = asr_dataset[str(subset)].filter(
-        #                 lambda x: x in sampled_speakers, input_columns=['client_id']
-        #             )
-        # speakers.difference_update(set(sampled_speakers))
+            concatenate_dataset = Dataset.from_dict(
+                {"audio": [], "speakers": [], "timestamps_start": [], "timestamps_end": []}
+            )
 
-        dataset = asr_dataset[str(subset)].shuffle()
+            # asr_dataset[str(subset)] = asr_dataset[str(subset)].shuffle().select(range(30))
+            # speakers = set(asr_dataset[str(subset)]["client_id"])
 
-        result = dataset.map(
-            lambda example: asr_to_spd.concatenate_no_timestamps(example),
-            batched=True,
-            batch_size=batch_size,
-            remove_columns=dataset.column_names,
-            num_proc=num_proc,
-        )
+            # while len(speakers) > 5:
+            # n_speakers = random.randint(3, 10)
+            # sampled_speakers = random.sample(speakers, min(n_speakers, len(speakers)))
 
-        concatenate_dataset = concatenate_datasets([concatenate_dataset, result])
-        print(len(speakers))
+            # dataset = asr_dataset[str(subset)].filter(
+            #                 lambda x: x in sampled_speakers, input_columns=['client_id']
+            #             )
+            # speakers.difference_update(set(sampled_speakers))
 
-        speaker_diarization_dataset[str(subset)] = concatenate_dataset
+            dataset = self.dataset[str(subset)].shuffle()
 
-    return speaker_diarization_dataset
+            result = dataset.map(
+                lambda example: self.concatenate(example),
+                batched=True,
+                batch_size=self.batch_size,
+                remove_columns=dataset.column_names,
+                num_proc=num_proc,
+            )
+
+            concatenate_dataset = concatenate_datasets([concatenate_dataset, result])
+
+            self.spd_dataset[str(subset)] = concatenate_dataset
+
+        return self.spd_dataset
 
 
 if __name__ == "__main__":
 
     config = {
         "audio_file_length": 1.1,
+        "batch_size": 8, 
         "std_concatenate": 2,
         "sample_rate": 16000,
         "refine_with_vad": True,
@@ -398,22 +401,17 @@ if __name__ == "__main__":
         "ir_path": "/home/kamil/datasets/MIT-ir-survey",
     }
 
-    batch_size = 8
-    num_proc = 1
-
     common_voice = load_dataset(
         "mozilla-foundation/common_voice_16_1", "en", num_proc=2
     )
     speaker_column_name = "client_id"
     audio_column_name = "audio"
 
-    spd_dataset = create_spd_dataset_from_asr(
+    spd_dataset = SyntheticDataset(
         common_voice,
         speaker_column_name,
         audio_column_name,
         config,
-        batch_size,
-        num_proc,
-    )
+    ).create_spd_dataset(num_proc=12)
 
     spd_dataset.push_to_hub("kamilakesbi/commonvoice_en_spd_train_small_test")
