@@ -203,7 +203,7 @@ class Preprocess:
         return new_batch
 
 
-    def preprocess_dataset(self):
+    def preprocess_dataset(self, num_proc=1):
         """_summary_
 
         Args:
@@ -229,7 +229,7 @@ class Preprocess:
             batched=True,
             batch_size=1,
             remove_columns=self.input_dataset["train"].column_names,
-            num_proc=1,
+            num_proc=num_proc,
         )
         self.processed_dataset["train"] = self.processed_dataset["train"].shuffle(seed=42)
 
@@ -240,7 +240,7 @@ class Preprocess:
             batched=True,
             batch_size=1,
             remove_columns=self.input_dataset["validation"].column_names,
-            num_proc=24,
+            num_proc=num_proc,
         )
 
         self.processed_dataset["test"] = self.input_dataset["test"].map(
@@ -250,7 +250,7 @@ class Preprocess:
             batched=True,
             batch_size=1,
             remove_columns=self.input_dataset["validation"].column_names,
-            num_proc=24,
+            num_proc=num_proc,
         )
 
         return self.processed_dataset
