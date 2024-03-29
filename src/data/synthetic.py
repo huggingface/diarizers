@@ -12,7 +12,14 @@ from audiomentations import (
 from datasets import Dataset, DatasetDict, concatenate_datasets, load_dataset
 from denoiser import pretrained
 from denoiser.dsp import convert_audio
+import copyreg
+import os
 
+
+def pickle_model(model):
+    if not os.path.exists("vad.pt"):
+        model.save("vad.pt")
+    return torch.jit.load, ("vad.pt",)
 
 class SyntheticDataset:
     """_summary_"""
@@ -46,6 +53,7 @@ class SyntheticDataset:
 
         if self.refine_with_vad:
 
+            torch.set_num_threads(1)
             torch.hub._validate_not_a_forked_repo = lambda a, b, c: True
             vad_model, utils = torch.hub.load(
                 repo_or_dir="snakers4/silero-vad", model="silero_vad", force_reload=True
@@ -344,7 +352,12 @@ class SyntheticDataset:
             }
         )
 
-        self.dataset.select_columns([str(speaker_column_name), str(audio_column_name)])
+        if num_proc >1: 
+            ## serialize vad_model to allow multiprocessing in the map function
+            copyreg.pickle(type(self.vad_model), pickle_model)
+
+
+        self.input_dataset.select_columns([str(self.speaker_column_name), str(self.audio_column_name)])
 
         for subset in subsets:
 
@@ -364,7 +377,7 @@ class SyntheticDataset:
             #             )
             # speakers.difference_update(set(sampled_speakers))
 
-            dataset = self.dataset[str(subset)].shuffle()
+            dataset = self.input_dataset[str(subset)].shuffle()
 
             result = dataset.map(
                 lambda example: self.concatenate(example),
@@ -378,10 +391,16 @@ class SyntheticDataset:
 
             self.spd_dataset[str(subset)] = concatenate_dataset
 
+        if num_proc >1: 
+            copyreg.dispatch_table.pop(type(self.vad_model), None)
+            if os.path.exists("vad.pt"):
+                os.remove("vad.pt")
+
         return self.spd_dataset
 
 
-if __name__ == "__main__":
+if __name__ == '__main__': 
+
 
     config = {
         "audio_file_length": 1.1,
@@ -389,7 +408,7 @@ if __name__ == "__main__":
         "std_concatenate": 2,
         "sample_rate": 16000,
         "refine_with_vad": True,
-        "denoise": True,
+        "denoise": False,
         "normalize": True,
         "augment": True,
         "silent_regions": {
@@ -397,7 +416,7 @@ if __name__ == "__main__":
             "silence_duration": 10,
             "silence_proba": 0.5,
         },
-        "bn_path": "/home/kamil/datasets/wham_noise/wham_noise/train",
+        "bn_path": "/home/kamil/datasets/wham_noise/wham_noise/tr",
         "ir_path": "/home/kamil/datasets/MIT-ir-survey",
     }
 
@@ -412,6 +431,6 @@ if __name__ == "__main__":
         speaker_column_name,
         audio_column_name,
         config,
-    ).create_spd_dataset(num_proc=12)
+    ).create_spd_dataset(num_proc=24)
 
-    spd_dataset.push_to_hub("kamilakesbi/commonvoice_en_spd_train_small_test")
+    spd_dataset.push_to_hub("kamilakesbi/commonvoice_spd_synthetic")
