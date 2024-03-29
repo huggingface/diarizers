@@ -3,7 +3,7 @@ import os
 
 from datasets import load_dataset
 from metrics import Metrics
-from src.models.segmentation.pretrained_model import SegmentationModel, SegmentationModelConfig
+from src.models.segmentation.hf_model import SegmentationModel, SegmentationModelConfig
 from src.data.preprocess import preprocess_spd_dataset
 from transformers import Trainer, TrainingArguments
 

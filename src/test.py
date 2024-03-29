@@ -4,7 +4,7 @@ from datasets import load_dataset
 from pyannote.core import SlidingWindow, SlidingWindowFeature
 from tqdm import tqdm
 
-from pyannote.audio import Inference, Model
+from pyannote.audio import Inference
 from pyannote.audio.pipelines.utils import get_devices
 from pyannote.audio.torchmetrics import (
     DiarizationErrorRate,
@@ -12,8 +12,6 @@ from pyannote.audio.torchmetrics import (
     MissedDetectionRate,
     SpeakerConfusionRate,
 )
-from src.models.segmentation.pretrained_model import SegmentationModel, SegmentationModelConfig
-
 
 class Test:
     def __init__(self, test_dataset, model, step=2.5):
@@ -116,7 +114,6 @@ class Test:
             self.metrics["missed_detection"](pred, target)
             self.metrics["confusion"](pred, target)
         
-        print(self.metrics['der'].compute())
 
     def compute_metrics(self):
 
@@ -131,16 +128,3 @@ class Test:
         }
 
 
-if __name__ == "__main__":
-    test_dataset = load_dataset("kamilakesbi/real_ami_ihm", split="test")
-
-    model = Model.from_pretrained("pyannote/segmentation-3.0", use_auth_token=True)
-
-    config = SegmentationModelConfig()
-    model = SegmentationModel(config)
-    model = model.from_pretrained('/home/kamil/projects/pyannote-audio/huggingface/output/checkpoint-5427')
-    model = model.to_pyannote_model()
-    test = Test(test_dataset, model, step=2.5)
-
-    metrics = test.compute_metrics()
-    print(metrics)

@@ -1,7 +1,4 @@
-import glob
 from datasets import Dataset, Audio, DatasetDict
-# from dotenv import load_dotenv
-import os
 
 
 class SpeakerDiarizationDataset: 
@@ -21,9 +18,8 @@ class SpeakerDiarizationDataset:
         speakers = []
 
         with open(path_to_rttm, "r") as file:
-
+            
             lines = file.readlines()
-
             for line in lines:
 
                 fields = line.split()
@@ -64,7 +60,7 @@ class SpeakerDiarizationDataset:
 
 
             self.spd_dataset[subset] = Dataset.from_dict({
-                "audio": audio_paths[subset], 
+                "audio": self.audio_paths[subset], 
                 "timestamps_start": timestamps_start, 
                 "timestamps_end": timestamps_end, 
                 "speakers": speakers, 
@@ -73,31 +69,3 @@ class SpeakerDiarizationDataset:
 
         return self.spd_dataset
 
-
-def get_ami_files(): 
-    rttm_paths = {
-        'train': glob.glob('/home/kamil/datasets/AMI-diarization-setup/only_words/rttms/{}/*.rttm'.format('train')), 
-        'validation': glob.glob('/home/kamil/datasets/AMI-diarization-setup/only_words/rttms/{}/*.rttm'.format('dev')), 
-        'test': glob.glob('/home/kamil/datasets/AMI-diarization-setup/only_words/rttms/{}/*.rttm'.format('test')), 
-    }
-
-    audio_paths = {
-        'train': [], 
-        'validation': [], 
-        'test': [], 
-    }
-
-    for subset in rttm_paths: 
-        for rttm in rttm_paths[subset]: 
-            meeting = rttm.split('/')[-1].split('.')[0]
-            audio_paths[subset].append('/home/kamil/datasets/AMI-diarization-setup/pyannote/amicorpus/{}/audio/{}.Mix-Headset.wav'.format(meeting, meeting))
-
-    return rttm_paths, audio_paths
-
-
-
-if __name__ == '__main__': 
-
-    rttm_paths, audio_paths = get_ami_files()
-    ami_dataset = SpeakerDiarizationDataset(audio_paths, rttm_paths).construct_dataset()
-    print(ami_dataset)

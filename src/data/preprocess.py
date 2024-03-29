@@ -1,4 +1,3 @@
-import argparse
 import math
 
 import numpy as np
@@ -7,22 +6,20 @@ from pyannote.audio.models.segmentation import PyanNet
 import torch
 from pyannote.audio.core.task import Problem, Resolution, Specifications
 
-
 class Preprocess: 
 
     def __init__(
         self, 
         input_dataset, 
-        config, 
+        model, 
     ): 
         
         self.input_dataset = input_dataset
-
-        self.chunk_duration = config['chunk_duration']
-        self.max_speakers_per_frame = config['max_speakers_per_frame']
-        self.max_speakers_per_chunk = config['max_speakers_per_chunk'] 
-        self.min_duration = config['min_duration']
-        self.warm_up = config['warm_up']
+        self.chunk_duration = model.chunk_duration
+        self.max_speakers_per_frame = model.max_speakers_per_frame
+        self.max_speakers_per_chunk = model.max_speakers_per_chunk
+        self.min_duration = model.min_duration
+        self.warm_up = model.warm_up
 
         self.model = PyanNet(sincnet={"stride": 10})
     

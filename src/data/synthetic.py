@@ -47,7 +47,6 @@ class SyntheticDataset:
         self.silence_duration = config["silent_regions"]["silence_duration"]
         self.silence_proba = config["silent_regions"]["silence_proba"]
 
-
         if self.denoise:
             self.denoiser = pretrained.dns64().cuda()
 
@@ -356,7 +355,6 @@ class SyntheticDataset:
             ## serialize vad_model to allow multiprocessing in the map function
             copyreg.pickle(type(self.vad_model), pickle_model)
 
-
         self.input_dataset.select_columns([str(self.speaker_column_name), str(self.audio_column_name)])
 
         for subset in subsets:
@@ -399,38 +397,38 @@ class SyntheticDataset:
         return self.spd_dataset
 
 
-if __name__ == '__main__': 
+# if __name__ == '__main__': 
 
 
-    config = {
-        "audio_file_length": 1.1,
-        "batch_size": 8, 
-        "std_concatenate": 2,
-        "sample_rate": 16000,
-        "refine_with_vad": True,
-        "denoise": False,
-        "normalize": True,
-        "augment": True,
-        "silent_regions": {
-            "silent_regions": True,
-            "silence_duration": 10,
-            "silence_proba": 0.5,
-        },
-        "bn_path": "/home/kamil/datasets/wham_noise/wham_noise/tr",
-        "ir_path": "/home/kamil/datasets/MIT-ir-survey",
-    }
+#     config = {
+#         "audio_file_length": 1.1,
+#         "batch_size": 8, 
+#         "std_concatenate": 2,
+#         "sample_rate": 16000,
+#         "refine_with_vad": True,
+#         "denoise": False,
+#         "normalize": True,
+#         "augment": True,
+#         "silent_regions": {
+#             "silent_regions": True,
+#             "silence_duration": 10,
+#             "silence_proba": 0.5,
+#         },
+#         "bn_path": "/home/kamil/datasets/wham_noise/wham_noise/tr",
+#         "ir_path": "/home/kamil/datasets/MIT-ir-survey",
+#     }
 
-    common_voice = load_dataset(
-        "mozilla-foundation/common_voice_16_1", "en", num_proc=2
-    )
-    speaker_column_name = "client_id"
-    audio_column_name = "audio"
+#     common_voice = load_dataset(
+#         "mozilla-foundation/common_voice_16_1", "en", num_proc=2
+#     )
+#     speaker_column_name = "client_id"
+#     audio_column_name = "audio"
 
-    spd_dataset = SyntheticDataset(
-        common_voice,
-        speaker_column_name,
-        audio_column_name,
-        config,
-    ).create_spd_dataset(num_proc=24)
+#     spd_dataset = SyntheticDataset(
+#         common_voice,
+#         speaker_column_name,
+#         audio_column_name,
+#         config,
+#     ).create_spd_dataset(num_proc=24)
 
-    spd_dataset.push_to_hub("kamilakesbi/commonvoice_spd_synthetic")
+#     spd_dataset.push_to_hub("kamilakesbi/commonvoice_spd_synthetic")

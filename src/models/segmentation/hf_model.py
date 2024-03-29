@@ -2,7 +2,7 @@ import copy
 from typing import Optional
 
 import torch
-from models.segmentation.pyannet import PyanNet_nn
+from src.models.segmentation.pyannet import PyanNet_nn
 from transformers import PretrainedConfig, PreTrainedModel
 
 from pyannote.audio.core.task import Problem, Resolution, Specifications
@@ -35,13 +35,15 @@ class SegmentationModel(PreTrainedModel):
 
     def __init__(
         self,
-        config,
-        duration=10,
-        max_speakers_per_frame=2,
-        max_speakers_per_chunk=3,
-        min_duration=None,
-        warm_up=(0.0, 0.0),
-        weigh_by_cardinality=False,
+        hyperparameters = {
+            'chunk_duration' : 10, 
+            'max_speakers_per_frame' : 2, 
+            'max_speakers_per_chunk': 3, 
+            'min_duration' : None, 
+            'warm_up' : (0.0, 0.0), 
+            'weigh_by_cardinality': False
+        }, 
+        config_class=SegmentationModelConfig()
     ):
         """init method
 
@@ -74,21 +76,26 @@ class SegmentationModel(PreTrainedModel):
                 Defaults to 0. (i.e. no warm-up).
         """
 
-        super().__init__(config)
+        super().__init__(config_class)
         self.model = PyanNet_nn(sincnet={"stride": 10})
 
-        self.weigh_by_cardinality = weigh_by_cardinality
+        self.weigh_by_cardinality = hyperparameters['weigh_by_cardinality']
+        self.max_speakers_per_frame = hyperparameters['max_speakers_per_frame']
+        self.chunk_duration = hyperparameters['chunk_duration']
+        self.min_duration = hyperparameters['min_duration']
+        self.warm_up = hyperparameters['warm_up']
+        self.max_speakers_per_chunk = hyperparameters['max_speakers_per_chunk']
 
         self.specifications = Specifications(
             problem=Problem.MULTI_LABEL_CLASSIFICATION
-            if max_speakers_per_frame is None
+            if self.max_speakers_per_frame is None
             else Problem.MONO_LABEL_CLASSIFICATION,
             resolution=Resolution.FRAME,
-            duration=duration,
-            min_duration=min_duration,
-            warm_up=warm_up,
-            classes=[f"speaker#{i+1}" for i in range(max_speakers_per_chunk)],
-            powerset_max_classes=max_speakers_per_frame,
+            duration=self.chunk_duration,
+            min_duration=self.min_duration,
+            warm_up=self.warm_up,
+            classes=[f"speaker#{i+1}" for i in range(self.max_speakers_per_chunk)],
+            powerset_max_classes=self.max_speakers_per_frame,
             permutation_invariant=True,
         )
         self.model.specifications = self.specifications
