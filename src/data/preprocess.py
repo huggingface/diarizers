@@ -12,32 +12,38 @@ class Preprocess:
 
     def __init__(
         self, 
-        duration=10, 
-        max_speakers_per_frame=2, 
-        max_speakers_per_chunk=3, 
-        min_duration=None, 
-        warm_up=(0.0, 0.0), 
+        input_dataset, 
+        config, 
     ): 
         
+        self.input_dataset = input_dataset
+
+        self.chunk_duration = config['chunk_duration']
+        self.max_speakers_per_frame = config['max_speakers_per_frame']
+        self.max_speakers_per_chunk = config['max_speakers_per_chunk'] 
+        self.min_duration = config['min_duration']
+        self.warm_up = config['warm_up']
+
         self.model = PyanNet(sincnet={"stride": 10})
     
         self.model.specifications = Specifications(
                     problem=Problem.MULTI_LABEL_CLASSIFICATION
-                    if max_speakers_per_frame is None
+                    if self.max_speakers_per_frame is None
                     else Problem.MONO_LABEL_CLASSIFICATION,
                     resolution=Resolution.FRAME,
-                    duration=duration,
-                    min_duration=min_duration,
-                    warm_up=warm_up,
-                    classes=[f"speaker#{i+1}" for i in range(max_speakers_per_chunk)],
-                    powerset_max_classes=max_speakers_per_frame,
+                    duration= self.chunk_duration,
+                    min_duration=self.min_duration,
+                    warm_up=self.warm_up,
+                    classes=[f"speaker#{i+1}" for i in range(self.max_speakers_per_chunk)],
+                    powerset_max_classes=self.max_speakers_per_frame,
                     permutation_invariant=True,
                 )
         self.model.build()
 
         # Get the number of frames associated to a chunk:
-        sample_rate = 16000
-        _, self.num_frames_per_chunk, _ = self.model(torch.rand((1, int(duration * sample_rate)))).shape
+        self.sample_rate = input_dataset['train'][0]['audio']['sampling_rate']
+
+        _, self.num_frames_per_chunk, _ = self.model(torch.rand((1, int(self.chunk_duration * self.sample_rate)))).shape
 
 
     def get_labels_in_file(self, file):
@@ -85,7 +91,7 @@ class Preprocess:
         return annotations
 
 
-    def get_chunk(self, file, start_time, duration):
+    def get_chunk(self, file, start_time):
         """_summary_
 
         Args:
@@ -98,9 +104,12 @@ class Preprocess:
         """
 
         sample_rate = file["audio"][0]["sampling_rate"]
-        end_time = start_time + duration
+
+        assert sample_rate == self.sample_rate
+
+        end_time = start_time + self.chunk_duration
         start_frame = math.floor(start_time * sample_rate)
-        num_frames_waveform = math.floor(duration * sample_rate)
+        num_frames_waveform = math.floor(self.chunk_duration * sample_rate)
         end_frame = start_frame + num_frames_waveform
 
         waveform = file["audio"][0]["array"][start_frame:end_frame]
@@ -114,7 +123,7 @@ class Preprocess:
         ]
 
         # compute frame resolution:
-        resolution = duration / self.num_frames_per_chunk
+        resolution = self.chunk_duration / self.num_frames_per_chunk
 
         # discretize chunk annotations at model output resolution
         start = np.maximum(chunk_segments["start"], start_time) - start_time
@@ -140,7 +149,7 @@ class Preprocess:
         return waveform, y, labels
 
 
-    def get_start_positions(self, file, duration, overlap, random=False):
+    def get_start_positions(self, file, overlap, random=False):
         """_summary_
 
         Args:
@@ -153,18 +162,20 @@ class Preprocess:
         """
 
         sample_rate = file["audio"][0]["sampling_rate"]
+
+        assert sample_rate == self.sample_rate
+
         file_duration = len(file["audio"][0]["array"]) / sample_rate
-        start_positions = np.arange(0, file_duration - duration, duration * (1 - overlap))
+        start_positions = np.arange(0, file_duration - self.chunk_duration, self.chunk_duration * (1 - overlap))
 
         if random:
-
-            nb_samples = int(file_duration / duration)
+            nb_samples = int(file_duration / self.chunk_duration)
             start_positions = np.random.uniform(0, file_duration, nb_samples)
 
         return start_positions
 
 
-    def chunk_file(self, file, duration=2, select_random=False, overlap=0.0):
+    def chunk_file(self, file, select_random=False, overlap=0.0):
         """_summary_
 
         Args:
@@ -180,13 +191,13 @@ class Preprocess:
         new_batch = {"waveforms": [], "labels": [], "nb_speakers": []}
 
         if select_random:
-            start_positions = self.get_start_positions(file, duration, overlap, random=True)
+            start_positions = self.get_start_positions(file, overlap, random=True)
         else:
-            start_positions = self.get_start_positions(file, duration, overlap)
+            start_positions = self.get_start_positions(file, overlap)
 
         for start_time in start_positions:
 
-            waveform, target, label = self.get_chunk(file, start_time, duration)
+            waveform, target, label = self.get_chunk(file, start_time)
 
             new_batch["waveforms"].append(waveform)
             new_batch["labels"].append(target)
@@ -195,71 +206,54 @@ class Preprocess:
         return new_batch
 
 
-def preprocess_spd_dataset(ds, chunk_duration):
-    """_summary_
+    def preprocess_dataset(self):
+        """_summary_
 
-    Args:
-        ds (_type_): _description_
-        chunk_duration (_type_): _description_
+        Args:
+            ds (_type_): _description_
+            chunk_duration (_type_): _description_
 
-    Returns:
-        _type_: _description_
-    """
+        Returns:
+            _type_: _description_
+        """
 
-    processed_spd_dataset = DatasetDict(
-        {
-            "train": Dataset.from_dict({}),
-            "validation": Dataset.from_dict({}),
-            "test": Dataset.from_dict({}),
-        }
-    )
+        self.processed_dataset = DatasetDict(
+            {
+                "train": Dataset.from_dict({}),
+                "validation": Dataset.from_dict({}),
+                "test": Dataset.from_dict({}),
+            }
+        )
 
-    preprocess = Preprocess(chunk_duration)
+        self.processed_dataset["train"] = self.input_dataset["train"].map(
+            lambda file: self.chunk_file(
+                file, select_random=False, overlap=0.5
+            ),
+            batched=True,
+            batch_size=1,
+            remove_columns=self.input_dataset["train"].column_names,
+            num_proc=1,
+        )
+        self.processed_dataset["train"] = self.processed_dataset["train"].shuffle(seed=42)
 
-    processed_spd_dataset["train"] = ds["train"].map(
-        lambda file: preprocess.chunk_file(
-            file, duration=chunk_duration, select_random=False, overlap=0.5
-        ),
-        batched=True,
-        batch_size=1,
-        remove_columns=ds["train"].column_names,
-        num_proc=1,
-    )
-    processed_spd_dataset["train"] = processed_spd_dataset["train"].shuffle(seed=42)
+        self.processed_dataset["validation"] = self.input_dataset["validation"].map(
+            lambda file: self.chunk_file(
+                file, select_random=False, overlap=0.0
+            ),
+            batched=True,
+            batch_size=1,
+            remove_columns=self.input_dataset["validation"].column_names,
+            num_proc=24,
+        )
 
-    processed_spd_dataset["validation"] = ds["validation"].map(
-        lambda file: preprocess.chunk_file(
-            file, duration=chunk_duration, select_random=False, overlap=0.0
-        ),
-        batched=True,
-        batch_size=1,
-        remove_columns=ds["validation"].column_names,
-        num_proc=24,
-    )
+        self.processed_dataset["test"] = self.input_dataset["test"].map(
+            lambda file: self.chunk_file(
+                file, select_random=False, overlap=0.75
+            ),
+            batched=True,
+            batch_size=1,
+            remove_columns=self.input_dataset["validation"].column_names,
+            num_proc=24,
+        )
 
-    processed_spd_dataset["test"] = ds["test"].map(
-        lambda file: preprocess.chunk_file(
-            file, duration=chunk_duration, select_random=False, overlap=0.75
-        ),
-        batched=True,
-        batch_size=1,
-        remove_columns=ds["validation"].column_names,
-        num_proc=24,
-    )
-
-    return processed_spd_dataset
-
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--chunk_duration", help="", default="10")
-
-    args = parser.parse_args()
-
-    ds = load_dataset("kamilakesbi/ami_spd_nobatch", num_proc=12)
-
-    processed_dataset = preprocess_spd_dataset(
-        ds, chunk_duration=int(args.chunk_duration)
-    )
-
-    processed_dataset.push_to_hub("kamilakesbi/real_ami_processed_sc2")
+        return self.processed_dataset
