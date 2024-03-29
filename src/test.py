@@ -127,4 +127,3 @@ class Test:
             "confusion": self.metrics["confusion"].compute(),
         }
 
-

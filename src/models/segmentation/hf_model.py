@@ -35,6 +35,7 @@ class SegmentationModel(PreTrainedModel):
 
     def __init__(
         self,
+        config=SegmentationModelConfig(), 
         hyperparameters = {
             'chunk_duration' : 10, 
             'max_speakers_per_frame' : 2, 
@@ -43,7 +44,6 @@ class SegmentationModel(PreTrainedModel):
             'warm_up' : (0.0, 0.0), 
             'weigh_by_cardinality': False
         }, 
-        config_class=SegmentationModelConfig()
     ):
         """init method
 
@@ -76,7 +76,7 @@ class SegmentationModel(PreTrainedModel):
                 Defaults to 0. (i.e. no warm-up).
         """
 
-        super().__init__(config_class)
+        super().__init__(config)
         self.model = PyanNet_nn(sincnet={"stride": 10})
 
         self.weigh_by_cardinality = hyperparameters['weigh_by_cardinality']

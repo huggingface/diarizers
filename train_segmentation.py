@@ -4,10 +4,9 @@ import os
 from datasets import load_dataset
 from src.models.segmentation.hf_model import SegmentationModel
 from src.data.preprocess import Preprocess
-from src.metrics import Metrics
 from transformers import Trainer, TrainingArguments
 
-from src.collator import DataCollator
+from src.utils import DataCollator, Metrics
 from pyannote.audio import Model
 
 
@@ -36,7 +35,7 @@ if __name__ == "__main__":
     # Test arguments:
     parser.add_argument("--do_init_eval", help="", default=True)
     parser.add_argument('--checkpoint_path', help="", default='checkpoints/ami')
-
+    parser.add_argument('--save_model', help="", default=True)
     args = parser.parse_args()
 
     dataset = load_dataset(str(args.dataset_name), num_proc=12)
@@ -48,11 +47,11 @@ if __name__ == "__main__":
             "pyannote/segmentation-3.0", use_auth_token=True
         )
         model.from_pyannote_model(pretrained)
-
+    
     preprocessed_dataset = Preprocess(
         dataset, model
     ).preprocess_dataset(num_proc=24)
-
+    
     train_dataset = preprocessed_dataset["train"].with_format("torch")
     eval_dataset = preprocessed_dataset["validation"].with_format("torch")
 
@@ -74,7 +73,7 @@ if __name__ == "__main__":
         save_safetensors=False,
         seed=42,
     )
-
+    
     trainer = Trainer(
         model=model,
         args=training_args,
@@ -88,4 +87,12 @@ if __name__ == "__main__":
         first_eval = trainer.evaluate()
         print("Initial metric values: ", first_eval)
     trainer.train()
+
+    if str(args.save_model): 
+        trainer.save_model(output_dir=str(args.checkpoint_path))
+    
+
+
+
+
 
