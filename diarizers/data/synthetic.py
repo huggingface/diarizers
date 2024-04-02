@@ -67,8 +67,8 @@ class SyntheticDataset:
 
             self.augmentation_pipeline = Compose(
                 [
-                    ApplyImpulseResponse(self.ir_path, p=0.3),
-                    AddBackgroundNoise(self.bn_path, 30, 50, p=0.1),
+                    ApplyImpulseResponse(self.ir_path, p=0.5),
+                    AddBackgroundNoise(self.bn_path, 30, 50, p=0.5),
                     AddGaussianSNR(
                         min_snr_db=30.0,
                         max_snr_db=50.0,
@@ -156,6 +156,8 @@ class SyntheticDataset:
         speech_timestamps = self.get_speech_timestamps(
             audio_segment, self.vad_model, sampling_rate=self.sample_rate
         )
+
+        assert speech_timestamps[-1]['end'] <= len(audio_segment)
 
         file_timestamps_start = [
             start + timestamps["start"] / self.sample_rate
@@ -278,21 +280,27 @@ class SyntheticDataset:
                     element["client_id"],
                     start,
                 )
+                file_timestamps_start_vad = [min(timestamp_start, len(audio_file)/ self.sample_rate) for timestamp_start in file_timestamps_start_vad]
+                file_timestamps_end_vad = [min(timestamp_end, len(audio_file)/ self.sample_rate) for timestamp_end in file_timestamps_end_vad]
                 file_timestamps_start += file_timestamps_start_vad
                 file_timestamps_end += file_timestamps_end_vad
                 speakers += speakers_vad
 
             else:
-                file_timestamps_start.append(start)
-                file_timestamps_end.append(end)
+
+                file_timestamps_start.append(min(start, len(audio_file)/ self.sample_rate))
+                file_timestamps_end.append(min(end, len(audio_file) / self.sample_rate))
                 speakers.append(element["client_id"])
 
             audio_file[start_index : start_index + segment_length] += audio_segment[
                 :segment_length
             ]
+
             start = max(int(0), np.random.normal(end, self.std_concatenate))
+    
 
         if self.silent_regions:
+            
             (
                 audio_file,
                 file_timestamps_start,
@@ -351,7 +359,7 @@ class SyntheticDataset:
             }
         )
 
-        if num_proc >1: 
+        if num_proc>1: 
             ## serialize vad_model to allow multiprocessing in the map function
             copyreg.pickle(type(self.vad_model), pickle_model)
 
@@ -375,7 +383,7 @@ class SyntheticDataset:
             #             )
             # speakers.difference_update(set(sampled_speakers))
 
-            dataset = self.input_dataset[str(subset)].shuffle()
+            dataset = self.input_dataset[str(subset)].shuffle().select(range(1000))
 
             result = dataset.map(
                 lambda example: self.concatenate(example),
@@ -389,7 +397,7 @@ class SyntheticDataset:
 
             self.spd_dataset[str(subset)] = concatenate_dataset
 
-        if num_proc >1: 
+        if num_proc>1: 
             copyreg.dispatch_table.pop(type(self.vad_model), None)
             if os.path.exists("vad.pt"):
                 os.remove("vad.pt")
