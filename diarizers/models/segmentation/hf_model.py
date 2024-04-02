@@ -2,7 +2,7 @@ import copy
 from typing import Optional
 
 import torch
-from src.models.segmentation.pyannet import PyanNet_nn
+from diarizers.models.segmentation.pyannet import PyanNet_nn
 from transformers import PretrainedConfig, PreTrainedModel
 
 from pyannote.audio.core.task import Problem, Resolution, Specifications

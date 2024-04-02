@@ -1,6 +1,6 @@
 from datasets import load_dataset
 from pyannote.audio import Model
-from src.test import Test
+from diarizers.test import Test
 
 
 if __name__ == "__main__":

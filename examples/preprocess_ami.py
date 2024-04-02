@@ -1,7 +1,6 @@
-import argparse
 from datasets import load_dataset
-from src.data.preprocess import Preprocess
-from src.models.segmentation.hf_model import SegmentationModel
+from diarizers.data.preprocess import Preprocess
+from diarizers.models.segmentation.hf_model import SegmentationModel
 
 if __name__ == "__main__":
 

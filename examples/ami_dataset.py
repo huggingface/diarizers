@@ -1,5 +1,5 @@
 import glob
-from src.data.speaker_diarization import SpeakerDiarizationDataset
+from diarizers.data.speaker_diarization import SpeakerDiarizationDataset
 
 
 def get_ami_files(): 

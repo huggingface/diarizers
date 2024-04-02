@@ -1,5 +1,5 @@
 from datasets import load_dataset
-from src.data.synthetic import SyntheticDataset
+from diarizers.data.synthetic import SyntheticDataset
 
 if __name__ == '__main__': 
 

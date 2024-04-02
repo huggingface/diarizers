@@ -2,11 +2,11 @@ import argparse
 import os
 
 from datasets import load_dataset
-from src.models.segmentation.hf_model import SegmentationModel
-from src.data.preprocess import Preprocess
+from diarizers.models.segmentation.hf_model import SegmentationModel
+from diarizers.data.preprocess import Preprocess
 from transformers import Trainer, TrainingArguments
 
-from src.utils import DataCollator, Metrics
+from diarizers.utils import DataCollator, Metrics
 from pyannote.audio import Model
 
 
@@ -42,7 +42,6 @@ if __name__ == "__main__":
     model = SegmentationModel()
 
     if args.from_pretrained is True:
-        print('ok')
         pretrained = Model.from_pretrained(
             "pyannote/segmentation-3.0", use_auth_token=True
         )
