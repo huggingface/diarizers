@@ -12,7 +12,7 @@ Features:
 - `speakers`:
 
 
-### Add a speaker Diarization dataset to the Hub: 
+### Add a speaker diarization dataset to the Hub: 
 
 
 
@@ -45,7 +45,7 @@ python3 test_segmentation.py \
 ```
 
 
-## Use in a Pyannote pipeline: 
+## Use in pyannote: 
 
 - Use the fine-tuned segmentation model for inference: 
 
