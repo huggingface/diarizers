@@ -38,7 +38,7 @@ python3 train_segmentation.py
 ## Test: 
 
 ```
-python3 test_segmentation.py
+python3 test_segmentation.py \
    --dataset_name="kamilakesbi/real_ami_ihm"\
    --pretrained_or_finetuned='finetuned'\
    --checkpoint_path='checkpoints/ami'\
