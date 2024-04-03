@@ -7,9 +7,11 @@ class SpeakerDiarizationDataset:
         self, 
         audio_paths, 
         rttm_paths, 
+        sample_rate=16000,  
     ):
         self.audio_paths = audio_paths
         self.rttm_paths = rttm_paths
+        self.sample_rate = sample_rate
 
     def process_rttm_file(self, path_to_rttm): 
         
@@ -36,13 +38,7 @@ class SpeakerDiarizationDataset:
 
     def construct_dataset(self): 
 
-        self.spd_dataset = DatasetDict(
-            {
-                "train": Dataset.from_dict({}),
-                "validation": Dataset.from_dict({}),
-                "test": Dataset.from_dict({}),
-            }
-        )
+        self.spd_dataset = DatasetDict()
 
         for subset in self.audio_paths: 
 
@@ -50,9 +46,11 @@ class SpeakerDiarizationDataset:
             timestamps_end = []
             speakers = []
 
+            self.spd_dataset[str(subset)] =  Dataset.from_dict({})
+
             for rttm in self.rttm_paths[subset]: 
 
-                timestamps_start_file, timestamps_end_file, speakers_file = self.process_rttm_file(rttm)    
+                timestamps_start_file, timestamps_end_file, speakers_file = self.process_rttm_file(rttm)
 
                 timestamps_start.append(timestamps_start_file)
                 timestamps_end.append(timestamps_end_file)
@@ -65,7 +63,7 @@ class SpeakerDiarizationDataset:
                 "timestamps_end": timestamps_end, 
                 "speakers": speakers, 
 
-            }).cast_column("audio", Audio())
+            }).cast_column("audio", Audio(sampling_rate=self.sample_rate))
 
         return self.spd_dataset
 

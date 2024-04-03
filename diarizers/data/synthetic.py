@@ -9,12 +9,14 @@ from audiomentations import (
     ApplyImpulseResponse,
     Compose,
 )
-from datasets import Dataset, DatasetDict, concatenate_datasets
+from datasets import Dataset, DatasetDict, concatenate_datasets, Audio
 from denoiser import pretrained
 from denoiser.dsp import convert_audio
 import copyreg
 import os
 
+
+torch.multiprocessing.set_start_method('spawn')
 
 def pickle_model(model):
     if not os.path.exists("vad.pt"):
@@ -35,6 +37,7 @@ class SyntheticDataset:
         self.speaker_column_name = speaker_column_name
         self.audio_column_name = audio_column_name
 
+        self.num_samples = config["num_samples"]
         self.audio_file_length = config["audio_file_length"]
         self.batch_size = config["batch_size"]
         self.std_concatenate = config["std_concatenate"]
@@ -67,12 +70,12 @@ class SyntheticDataset:
 
             self.augmentation_pipeline = Compose(
                 [
-                    ApplyImpulseResponse(self.ir_path, p=0.5),
-                    AddBackgroundNoise(self.bn_path, 30, 50, p=0.5),
+                    ApplyImpulseResponse(self.ir_path, p=0.9),
+                    AddBackgroundNoise(self.bn_path, 0, 60, p=0.9),
                     AddGaussianSNR(
                         min_snr_db=30.0,
                         max_snr_db=50.0,
-                        p=0.2,
+                        p=0.3,
                     ),
                 ]
             )
@@ -156,8 +159,6 @@ class SyntheticDataset:
         speech_timestamps = self.get_speech_timestamps(
             audio_segment, self.vad_model, sampling_rate=self.sample_rate
         )
-
-        assert speech_timestamps[-1]['end'] <= len(audio_segment)
 
         file_timestamps_start = [
             start + timestamps["start"] / self.sample_rate
@@ -383,7 +384,11 @@ class SyntheticDataset:
             #             )
             # speakers.difference_update(set(sampled_speakers))
 
-            dataset = self.input_dataset[str(subset)].shuffle().select(range(1000))
+            nb_samples = self.num_samples * self.batch_size 
+            if subset in ['validation', 'test']: 
+                nb_samples = int(0.2 * nb_samples)
+
+            dataset = self.input_dataset[str(subset)].shuffle().select(range(nb_samples))
 
             result = dataset.map(
                 lambda example: self.concatenate(example),
@@ -391,7 +396,7 @@ class SyntheticDataset:
                 batch_size=self.batch_size,
                 remove_columns=dataset.column_names,
                 num_proc=num_proc,
-            )
+            ).cast_column("audio", Audio(sampling_rate=self.sample_rate))
 
             concatenate_dataset = concatenate_datasets([concatenate_dataset, result])
 
