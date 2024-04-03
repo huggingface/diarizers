@@ -212,6 +212,9 @@ class SegmentationModel(PreTrainedModel):
         Args:
             pretrained (pyannote.core.Model): pretrained pyannote segmentation model.
         """
+        self.specifications = self.model.specifications
+        self.model.build()
+        self.setup_loss_func()
 
         self.model.hparams = copy.deepcopy(pretrained.hparams)
 
@@ -232,9 +235,6 @@ class SegmentationModel(PreTrainedModel):
         self.model.activation = copy.deepcopy(pretrained.activation)
         self.model.activation.load_state_dict(pretrained.activation.state_dict())
 
-        self.specifications = self.model.specifications
-        self.model.build()
-        self.setup_loss_func()
 
     def to_pyannote_model(self):
         """Convert the current model to a pyanote segmentation model for use in pyannote pipelines."""
