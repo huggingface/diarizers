@@ -12,12 +12,13 @@ from pyannote.audio import Model
 
 if __name__ == "__main__":
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
     parser = argparse.ArgumentParser()
     # dataset arguments:
-    parser.add_argument("--dataset_name", help="", default="kamilakesbi/real_ami_ihm")
+    parser.add_argument("--dataset_name", help="", default="kamilakesbi/cv_for_spd_fr_2k_std_0.2")
     # Preprocess arguments:
+    parser.add_argument("--already_processed", help="", default=False)
 
     # Model Arguments:
     parser.add_argument("--from_pretrained", help="", default=True)
@@ -25,15 +26,15 @@ if __name__ == "__main__":
     # Training Arguments:
     parser.add_argument("--lr", help="", default=1e-3)
     parser.add_argument("--batch_size", help="", default=32)
-    parser.add_argument("--epochs", help="", default=3)
+    parser.add_argument("--epochs", help="", default=1)
 
     # Test arguments:
     parser.add_argument("--do_init_eval", help="", default=True)
-    parser.add_argument('--checkpoint_path', help="", default='checkpoints/ami')
+    parser.add_argument('--checkpoint_path', help="", default='checkpoints/cv_for_spd_fr_2k_std_0.2')
     parser.add_argument('--save_model', help="", default=True)
 
     # Hardware args: 
-    parser.add_argument('--num_proc', help="", default=12)
+    parser.add_argument('--num_proc', help="", default=24)
 
     args = parser.parse_args()
 
@@ -47,9 +48,12 @@ if __name__ == "__main__":
         )
         model.from_pyannote_model(pretrained)
     
-    preprocessed_dataset = Preprocess(
-        dataset, model
-    ).preprocess_dataset(num_proc=int(args.num_proc))
+    if args.already_processed is True: 
+        preprocessed_dataset = dataset
+    else: 
+        preprocessed_dataset = Preprocess(
+            dataset, model
+        ).preprocess_dataset(num_proc=int(args.num_proc))
     
     train_dataset = preprocessed_dataset["train"].with_format("torch")
     eval_dataset = preprocessed_dataset["validation"].with_format("torch")
@@ -89,4 +93,3 @@ if __name__ == "__main__":
 
     if args.save_model is True: 
         trainer.save_model(output_dir=str(args.checkpoint_path))
-    

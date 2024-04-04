@@ -8,17 +8,19 @@ from diarizers.test import Test
 
 if __name__ == "__main__":
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--dataset_name", help="", default="kamilakesbi/real_ami_ihm")
+    parser.add_argument("--dataset_name", help="", default="kamilakesbi/simsamu")
 
     parser.add_argument('--pretrained_or_finetuned', help="", default='finetuned', choices= ['finetuned', 'pretrained'])
-    parser.add_argument('--checkpoint_path', help="", default='checkpoints/ami')
+    parser.add_argument('--checkpoint_path', help="", default='checkpoints/cv_for_spd_fr_2k_std_0.2')
+    parser.add_argument('--num_proc', help="", default=12)
+
     args = parser.parse_args()
 
-    test_dataset = load_dataset(str(args.dataset_name), split='test', num_proc=12)
+    test_dataset = load_dataset(str(args.dataset_name), split='train', num_proc=int(args.num_proc))
     
     if str(args.pretrained_or_finetuned) == 'finetuned': 
         model = SegmentationModel()

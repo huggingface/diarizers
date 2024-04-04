@@ -4,7 +4,7 @@ from diarizers.models.segmentation.hf_model import SegmentationModel
 
 if __name__ == "__main__":
 
-    ds = load_dataset("kamilakesbi/ami_spd_nobatch", num_proc=12)
+    ds = load_dataset("kamilakesbi/cv_for_spd_fr_synthetic", num_proc=12)
 
     # Parameters to make the preprocesssing match the model hyperparameters: 
     hyperparameters = {
@@ -16,7 +16,7 @@ if __name__ == "__main__":
         'weigh_by_cardinality': False
     }
 
-    model = SegmentationModel(hyperparameters)
+    model = SegmentationModel(hyperparameters=hyperparameters)
 
-    preprocessed_dataset = Preprocess(ds, model).preprocess_dataset()
-    # preprocessed_dataset.push_to_hub("kamilakesbi/real_ami_processed")
+    preprocessed_dataset = Preprocess(ds, model).preprocess_dataset(num_proc=24)
+    preprocessed_dataset.push_to_hub("kamilakesbi/cv_for_spd_fr_processed")

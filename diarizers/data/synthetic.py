@@ -298,7 +298,6 @@ class SyntheticDataset:
             ]
 
             start = max(int(0), np.random.normal(end, self.std_concatenate))
-    
 
         if self.silent_regions:
             

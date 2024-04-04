@@ -2,3 +2,5 @@
 env
 checkpoints/*
 .vscode
+
+analysis
