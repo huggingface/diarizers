@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     # dataset arguments:
-    parser.add_argument("--dataset_name", help="", default="kamilakesbi/cv_for_spd_ja_2k_std_0.5-m0.5")
+    parser.add_argument("--dataset_name", help="", default="kamilakesbi/cv_for_spd_ja_2k_rayleigh")
     # Preprocess arguments:
     parser.add_argument("--already_processed", help="", default=False)
 
@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     # Test arguments:
     parser.add_argument("--do_init_eval", help="", default=True)
-    parser.add_argument('--checkpoint_path', help="", default='checkpoints/cv_for_spd_ja_2k_std_0.5-m0.5')
+    parser.add_argument('--checkpoint_path', help="", default='checkpoints/cv_for_spd_ja_2k_rayleigh')
     parser.add_argument('--save_model', help="", default=True)
 
     # Train-Test split: 

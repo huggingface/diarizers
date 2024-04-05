@@ -12,7 +12,7 @@ Japanese:
 ```
 !wget https://ca.talkbank.org/data/CallHome/jpn.zip
 !wget -r -np -nH --cut-dirs=2 -R index.html* https://media.talkbank.org/ca/CallHome/jpn/
-!unzip spa.zip
+!unzip jpn.zip
 ```
 
 Push the dataset to hub: 

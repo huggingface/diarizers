@@ -96,6 +96,18 @@ class Test:
             reference_window = reference.crop(window, mode="center")
             common_num_frames = min(self.num_frames, reference_window.shape[0])
 
+            ref_num_frames, ref_num_speakers = reference_window.shape
+            pred_num_frames, pred_num_speakers = pred.shape
+
+            if pred_num_speakers > ref_num_speakers:
+                reference_window = np.pad(
+                    reference_window, ((0, 0), (0, pred_num_speakers - ref_num_speakers))
+                )
+            elif ref_num_speakers > pred_num_speakers:
+                pred = np.pad(
+                    pred, ((0, 0), (0, ref_num_speakers - pred_num_speakers))
+                )
+
             pred = (
                 torch.tensor(pred[:common_num_frames])
                 .unsqueeze(0)

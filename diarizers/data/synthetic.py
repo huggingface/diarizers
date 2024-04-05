@@ -276,8 +276,6 @@ class SyntheticDataset:
             if self.normalize:
                 audio_segment = self.normalize_audio(audio_segment)
 
-            dur = len(audio_segment) / self.sample_rate
-            end = start + dur
 
             start_index = int(start * self.sample_rate)
 
@@ -295,6 +293,7 @@ class SyntheticDataset:
                     element["client_id"],
                     start,
                 )
+                end = start + len(audio_segment) / self.sample_rate
                 file_timestamps_start_vad = [min(timestamp_start, len(audio_file)/ self.sample_rate) for timestamp_start in file_timestamps_start_vad]
                 file_timestamps_end_vad = [min(timestamp_end, len(audio_file)/ self.sample_rate) for timestamp_end in file_timestamps_end_vad]
                 file_timestamps_start += file_timestamps_start_vad
@@ -302,7 +301,7 @@ class SyntheticDataset:
                 speakers += speakers_vad
 
             else:
-
+                end = start + len(audio_segment) / self.sample_rate
                 file_timestamps_start.append(min(start, len(audio_file)/ self.sample_rate))
                 file_timestamps_end.append(min(end, len(audio_file) / self.sample_rate))
                 speakers.append(element["client_id"])

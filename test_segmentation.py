@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_name", help="", default="kamilakesbi/callhome_jpn")
 
     parser.add_argument('--pretrained_or_finetuned', help="", default='finetuned', choices= ['finetuned', 'pretrained'])
-    parser.add_argument('--checkpoint_path', help="", default='checkpoints/cv_for_spd_ja_2k_std_0.5-m0.5')
+    parser.add_argument('--checkpoint_path', help="", default='checkpoints/cv_for_spd_ja_2k_rayleigh')
     parser.add_argument('--num_proc', help="", default=12)
     parser.add_argument('--do_split', help="", default=True)
 
