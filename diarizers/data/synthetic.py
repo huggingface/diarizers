@@ -70,12 +70,12 @@ class SyntheticDataset:
 
             self.augmentation_pipeline = Compose(
                 [
-                    ApplyImpulseResponse(self.ir_path, p=0.9),
-                    AddBackgroundNoise(self.bn_path, 0, 60, p=0.9),
+                    ApplyImpulseResponse(self.ir_path, p=0.5),
+                    AddBackgroundNoise(self.bn_path, 20, 60, p=0.5),
                     AddGaussianSNR(
                         min_snr_db=30.0,
                         max_snr_db=50.0,
-                        p=0.3,
+                        p=0.1,
                     ),
                 ]
             )
@@ -160,18 +160,29 @@ class SyntheticDataset:
             audio_segment, self.vad_model, sampling_rate=self.sample_rate
         )
 
-        audio_segment_start_index = int(speech_timestamps[0]['start'])
-        audio_segment_end_index = int(speech_timestamps[-1]['end'])
-        audio_segment = audio_segment[audio_segment_start_index:audio_segment_end_index]
+        if len(speech_timestamps): 
+            audio_segment_start_index = int(speech_timestamps[0]['start'])
+            audio_segment_end_index = int(speech_timestamps[-1]['end'])
+            audio_segment = audio_segment[audio_segment_start_index:audio_segment_end_index]
 
-        file_timestamps_start = [
-            start  + (timestamps["start"]- speech_timestamps[0]['start'])/ self.sample_rate
-            for timestamps in speech_timestamps
-        ]
-        file_timestamps_end = [
-            start + (timestamps["end"]- speech_timestamps[0]['start']) / self.sample_rate
-            for timestamps in speech_timestamps
-        ]
+            file_timestamps_start = [
+                start  + (timestamps["start"]- speech_timestamps[0]['start'])/ self.sample_rate
+                for timestamps in speech_timestamps
+            ]
+            file_timestamps_end = [
+                start + (timestamps["end"]- speech_timestamps[0]['start']) / self.sample_rate
+                for timestamps in speech_timestamps
+            ]
+        else: 
+            file_timestamps_start = [
+                start + timestamps["start"]/ self.sample_rate
+                for timestamps in speech_timestamps
+            ]
+            file_timestamps_end = [
+                start + timestamps["end"] / self.sample_rate
+                for timestamps in speech_timestamps
+            ]
+
         speakers = [speaker] * len(speech_timestamps)
 
         return (audio_segment, file_timestamps_start, file_timestamps_end, speakers)
@@ -302,7 +313,7 @@ class SyntheticDataset:
                 :segment_length
             ]
 
-            start = max(int(0), np.random.normal(end - 0.5, self.std_concatenate))
+            start = end + np.random.rayleigh(0.002) - 0.002
 
         if self.silent_regions:
             
