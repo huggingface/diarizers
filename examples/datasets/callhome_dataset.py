@@ -2,6 +2,7 @@
 import glob
 from datasets import Dataset, Audio, DatasetDict
 import numpy as np 
+import argparse
 
 def get_secs(x):
     return x * 4 * 2.0 / 8000
@@ -18,9 +19,9 @@ def get_start_end(t1, t2):
     t2 = get_secs(t2)
     return t1, t2
 
-def get_callhome_files(): 
+def get_callhome_files(langage='jpn'): 
 
-    audio_paths = glob.glob('/home/kamil/datasets/callhome/jpn/jpn_mp3/*.mp3')
+    audio_paths = glob.glob('/home/kamil/datasets/callhome/{}/*.mp3'.format(langage))
 
     audio_paths = {
         'data': audio_paths, 
@@ -32,7 +33,7 @@ def get_callhome_files():
     for subset in audio_paths: 
         for cha_path in audio_paths[subset]: 
             file = cha_path.split('/')[-1].split('.')[0]
-            cha_paths[subset].append('/home/kamil/datasets/callhome/jpn/jpn_cha/{}.cha'.format(file))
+            cha_paths[subset].append('/home/kamil/datasets/callhome/{}/{}.cha'.format(langage, file))
         
     return audio_paths, cha_paths
 
@@ -151,6 +152,12 @@ class CallHomeForSPDDataset:
 
 if __name__ == '__main__': 
 
-    audio_paths, cha_paths = get_callhome_files()
+    parser = argparse.ArgumentParser()
+    # dataset arguments:
+    parser.add_argument("--langage", help="", default="jpn")
+    args = parser.parse_args()
+
+    langage = str(args.langage)
+    audio_paths, cha_paths = get_callhome_files(langage)
     dataset = CallHomeForSPDDataset(audio_paths, cha_paths).construct_dataset(num_proc=24)
-    dataset.push_to_hub('kamilakesbi/callhome_jpn')
+    dataset.push_to_hub('kamilakesbi/callhome_{}'.format(langage))
