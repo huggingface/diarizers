@@ -1,12 +1,12 @@
 import argparse
 import os
 
-from datasets import load_dataset
+from datasets import load_dataset, DatasetDict
 from diarizers.models.segmentation.hf_model import SegmentationModel
 from diarizers.data.preprocess import Preprocess
 from transformers import Trainer, TrainingArguments
 
-from diarizers.utils import DataCollator, Metrics
+from diarizers.utils import DataCollator, Metrics, train_val_test_split
 from pyannote.audio import Model
 
 
@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     # dataset arguments:
-    parser.add_argument("--dataset_name", help="", default="kamilakesbi/cv_for_spd_fr_2k_std_0.2")
+    parser.add_argument("--dataset_name", help="", default="kamilakesbi/cv_for_spd_ja_2k_std_0.5-m0.5")
     # Preprocess arguments:
     parser.add_argument("--already_processed", help="", default=False)
 
@@ -30,8 +30,11 @@ if __name__ == "__main__":
 
     # Test arguments:
     parser.add_argument("--do_init_eval", help="", default=True)
-    parser.add_argument('--checkpoint_path', help="", default='checkpoints/cv_for_spd_fr_2k_std_0.2')
+    parser.add_argument('--checkpoint_path', help="", default='checkpoints/cv_for_spd_ja_2k_std_0.5-m0.5')
     parser.add_argument('--save_model', help="", default=True)
+
+    # Train-Test split: 
+    parser.add_argument('--do_split', default=False)
 
     # Hardware args: 
     parser.add_argument('--num_proc', help="", default=24)
@@ -39,7 +42,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     dataset = load_dataset(str(args.dataset_name), num_proc=int(args.num_proc))
-    
+
+    if args.do_split is True:  
+        dataset = train_val_test_split(dataset['data'])
+
     model = SegmentationModel()
 
     if args.from_pretrained is True:
@@ -54,7 +60,7 @@ if __name__ == "__main__":
         preprocessed_dataset = Preprocess(
             dataset, model
         ).preprocess_dataset(num_proc=int(args.num_proc))
-    
+
     train_dataset = preprocessed_dataset["train"].with_format("torch")
     eval_dataset = preprocessed_dataset["validation"].with_format("torch")
 

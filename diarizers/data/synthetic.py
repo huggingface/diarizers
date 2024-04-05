@@ -297,7 +297,7 @@ class SyntheticDataset:
                 :segment_length
             ]
 
-            start = max(int(0), np.random.normal(end, self.std_concatenate))
+            start = max(int(0), np.random.normal(end - 0.5, self.std_concatenate))
 
         if self.silent_regions:
             
@@ -374,7 +374,7 @@ class SyntheticDataset:
             # asr_dataset[str(subset)] = asr_dataset[str(subset)].shuffle().select(range(30))
             # speakers = set(asr_dataset[str(subset)]["client_id"])
 
-            # while len(speakers) > 5:
+            # while len(speakers) > 5:xzzz
             # n_speakers = random.randint(3, 10)
             # sampled_speakers = random.sample(speakers, min(n_speakers, len(speakers)))
 
@@ -383,7 +383,8 @@ class SyntheticDataset:
             #             )
             # speakers.difference_update(set(sampled_speakers))
 
-            nb_samples = self.num_samples * self.batch_size 
+            nb_samples = min(self.num_samples * self.batch_size, len(self.input_dataset[str(subset)]))
+
             if subset in ['validation', 'test']: 
                 nb_samples = int(0.2 * nb_samples)
 

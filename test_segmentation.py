@@ -5,6 +5,7 @@ from datasets import load_dataset
 from diarizers.models.segmentation.hf_model import SegmentationModel
 from pyannote.audio import Model
 from diarizers.test import Test
+from diarizers.utils import train_val_test_split
 
 if __name__ == "__main__":
 
@@ -12,15 +13,21 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--dataset_name", help="", default="kamilakesbi/simsamu")
+    parser.add_argument("--dataset_name", help="", default="kamilakesbi/callhome_jpn")
 
     parser.add_argument('--pretrained_or_finetuned', help="", default='finetuned', choices= ['finetuned', 'pretrained'])
-    parser.add_argument('--checkpoint_path', help="", default='checkpoints/cv_for_spd_fr_2k_std_0.2')
+    parser.add_argument('--checkpoint_path', help="", default='checkpoints/cv_for_spd_ja_2k_std_0.5-m0.5')
     parser.add_argument('--num_proc', help="", default=12)
+    parser.add_argument('--do_split', help="", default=True)
 
     args = parser.parse_args()
 
-    test_dataset = load_dataset(str(args.dataset_name), split='train', num_proc=int(args.num_proc))
+    dataset = load_dataset(str(args.dataset_name), num_proc=int(args.num_proc))
+
+    if args.do_split is True:  
+        dataset = train_val_test_split(dataset['data'])
+    
+    test_dataset = dataset['test']
     
     if str(args.pretrained_or_finetuned) == 'finetuned': 
         model = SegmentationModel()
