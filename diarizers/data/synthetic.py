@@ -160,17 +160,21 @@ class SyntheticDataset:
             audio_segment, self.vad_model, sampling_rate=self.sample_rate
         )
 
+        audio_segment_start_index = int(speech_timestamps[0]['start'])
+        audio_segment_end_index = int(speech_timestamps[-1]['end'])
+        audio_segment = audio_segment[audio_segment_start_index:audio_segment_end_index]
+
         file_timestamps_start = [
-            start + timestamps["start"] / self.sample_rate
+            start  + (timestamps["start"]- speech_timestamps[0]['start'])/ self.sample_rate
             for timestamps in speech_timestamps
         ]
         file_timestamps_end = [
-            start + timestamps["end"] / self.sample_rate
+            start + (timestamps["end"]- speech_timestamps[0]['start']) / self.sample_rate
             for timestamps in speech_timestamps
         ]
         speakers = [speaker] * len(speech_timestamps)
 
-        return (file_timestamps_start, file_timestamps_end, speakers)
+        return (audio_segment, file_timestamps_start, file_timestamps_end, speakers)
 
     def add_silent_regions(
         self,
@@ -269,10 +273,9 @@ class SyntheticDataset:
             if start_index >= audio_file_length:
                 break
 
-            segment_length = min(audio_file_length - start_index, len(audio_segment))
-
             if self.refine_with_vad:
                 (
+                    audio_segment, 
                     file_timestamps_start_vad,
                     file_timestamps_end_vad,
                     speakers_vad,
@@ -292,6 +295,8 @@ class SyntheticDataset:
                 file_timestamps_start.append(min(start, len(audio_file)/ self.sample_rate))
                 file_timestamps_end.append(min(end, len(audio_file) / self.sample_rate))
                 speakers.append(element["client_id"])
+
+            segment_length = min(audio_file_length - start_index, len(audio_segment))
 
             audio_file[start_index : start_index + segment_length] += audio_segment[
                 :segment_length
@@ -389,6 +394,9 @@ class SyntheticDataset:
                 nb_samples = int(0.2 * nb_samples)
 
             dataset = self.input_dataset[str(subset)].shuffle().select(range(nb_samples))
+
+
+
 
             result = dataset.map(
                 lambda example: self.concatenate(example),
