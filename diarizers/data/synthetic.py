@@ -14,6 +14,10 @@ from denoiser import pretrained
 from denoiser.dsp import convert_audio
 import copyreg
 import os
+from operator import itemgetter
+from itertools import chain
+import bisect
+
 
 
 torch.multiprocessing.set_start_method('spawn')
@@ -42,26 +46,24 @@ class SyntheticDataset:
         self.batch_size = config["batch_size"]
         self.std_concatenate = config["std_concatenate"]
         self.sample_rate = config["sample_rate"]
-        self.refine_with_vad = config["refine_with_vad"]
         self.denoise = config["denoise"]
         self.normalize = config["normalize"]
         self.augment = config["augment"]
         self.silent_regions = config["silent_regions"]["silent_regions"]
         self.silence_duration = config["silent_regions"]["silence_duration"]
         self.silence_proba = config["silent_regions"]["silence_proba"]
+        self.short_audio_threshold = config["short_audio_threshold"]
 
         if self.denoise:
             self.denoiser = pretrained.dns64().cuda()
 
-        if self.refine_with_vad:
-
-            torch.set_num_threads(1)
-            torch.hub._validate_not_a_forked_repo = lambda a, b, c: True
-            vad_model, utils = torch.hub.load(
-                repo_or_dir="snakers4/silero-vad", model="silero_vad", force_reload=True
-            )
-            self.vad_model = vad_model
-            self.get_speech_timestamps = utils[0]
+        torch.set_num_threads(1)
+        torch.hub._validate_not_a_forked_repo = lambda a, b, c: True
+        vad_model, utils = torch.hub.load(
+            repo_or_dir="snakers4/silero-vad", model="silero_vad", force_reload=True
+        )
+        self.vad_model = vad_model
+        self.get_speech_timestamps = utils[0]
 
         if self.augment:
 
@@ -80,7 +82,7 @@ class SyntheticDataset:
                 ]
             )
 
-    def estimate_audio_duration(self, batch, sr):
+    def estimate_concat_audio_length(self, audio_segments):
         """_summary_
 
         Args:
@@ -92,8 +94,10 @@ class SyntheticDataset:
         """
 
         audio_duration = 0
-        for row in batch:
-            audio_duration += len(row["audio"]["array"]) / sr
+        for audio_segment in audio_segments:
+            duration = len(audio_segment) / self.sample_rate
+            if duration > self.short_audio_threshold: 
+                audio_duration += len(audio_segment) / self.sample_rate
 
         audio_duration *= self.audio_file_length
 
@@ -154,7 +158,7 @@ class SyntheticDataset:
         )
         return audio_file
 
-    def refine_timestamps(self, audio_segment, speaker, start):
+    def refine_timestamps(self, audio_segment, speaker):
 
         speech_timestamps = self.get_speech_timestamps(
             audio_segment, self.vad_model, sampling_rate=self.sample_rate
@@ -166,20 +170,20 @@ class SyntheticDataset:
             audio_segment = audio_segment[audio_segment_start_index:audio_segment_end_index]
 
             file_timestamps_start = [
-                start  + (timestamps["start"]- speech_timestamps[0]['start'])/ self.sample_rate
+                (timestamps["start"]- speech_timestamps[0]['start'])/ self.sample_rate
                 for timestamps in speech_timestamps
             ]
             file_timestamps_end = [
-                start + (timestamps["end"]- speech_timestamps[0]['start']) / self.sample_rate
+                (timestamps["end"]- speech_timestamps[0]['start']) / self.sample_rate
                 for timestamps in speech_timestamps
             ]
         else: 
             file_timestamps_start = [
-                start + timestamps["start"]/ self.sample_rate
+                timestamps["start"]/ self.sample_rate
                 for timestamps in speech_timestamps
             ]
             file_timestamps_end = [
-                start + timestamps["end"] / self.sample_rate
+                timestamps["end"] / self.sample_rate
                 for timestamps in speech_timestamps
             ]
 
@@ -224,6 +228,101 @@ class SyntheticDataset:
 
         return extended_audio_file, file_timestamps_start, file_timestamps_end
 
+    def insert_audio_segments(
+        self, 
+        audio_segments, 
+        file_timestamps_start_vad, 
+        file_timestamps_end_vad, 
+        speakers_vad, 
+    ): 
+
+        start = 0
+        audio_duration = self.estimate_concat_audio_length(audio_segments)
+        audio_file = np.zeros(int(audio_duration * self.sample_rate))
+        audio_file_length = len(audio_file)
+
+        short_audios_segments = []
+
+        file_timestamps_start_long = []
+        file_timestamps_end_long = []
+        speakers_long = []
+        segments_durations_long = []
+
+        file_timestamps_start_short = []
+        file_timestamps_end_short = []
+        speakers_short = []
+
+        for i, audio_segment in enumerate(audio_segments): 
+            
+            if len(audio_segment) / self.sample_rate > self.short_audio_threshold: 
+                
+                start_index = int(start * self.sample_rate)
+
+                if start_index >= audio_file_length:
+                    break
+
+                segment_length = min(audio_file_length - start_index, len(audio_segment))
+
+                audio_file[start_index : start_index + segment_length] += audio_segment[
+                    :segment_length
+                ]
+
+                file_timestamps_start_long.append([timestamps_start + start for  timestamps_start in file_timestamps_start_vad[i]])
+                file_timestamps_end_long.append([timestamps_end + start for  timestamps_end in file_timestamps_end_vad[i]])
+                segments_durations_long.append(len(audio_segment) / self.sample_rate)
+                speakers_long.append(speakers_vad[i])
+              
+                end = start + len(audio_segment) / self.sample_rate
+                start = end + np.random.rayleigh(0.002) - 0.002
+            else: 
+                short_audios_segments.append(audio_segment)
+                file_timestamps_start_short.append(file_timestamps_start_vad[i])
+                file_timestamps_end_short.append(file_timestamps_end_vad[i])
+                speakers_short.append(speakers_vad[i])
+
+        sorted_indexes = [e[0] for e in sorted(enumerate(segments_durations_long), key=lambda x: x[1], reverse=True)]
+
+        for i in range(len(short_audios_segments)): 
+
+            if i >= len(sorted_indexes): 
+                break
+            
+            short_audio_segment = short_audios_segments[i]
+            short_audio_duration = (len(short_audio_segment)/self.sample_rate)
+            timestamps_start_short = file_timestamps_start_short[i]
+            timestamps_end_short = file_timestamps_end_short[i]
+
+            start = file_timestamps_start_long[sorted_indexes[i]][0]
+            end = max(file_timestamps_end_long[sorted_indexes[i]])
+
+            assert short_audio_duration < end-start
+
+            short_audio_start = np.random.uniform(start, end - short_audio_duration)
+            insert_index_start = int(short_audio_start * self.sample_rate)
+            segment_length = int(short_audio_duration * self.sample_rate)
+
+            short_audio_end = short_audio_start + short_audio_duration
+
+            audio_file[insert_index_start : insert_index_start + segment_length] += short_audio_segment[
+                    :segment_length
+                ]
+            
+            index = bisect.bisect_left(file_timestamps_start_long[sorted_indexes[i]], short_audio_start)
+
+            file_timestamps_start_long[sorted_indexes[i]].insert(index, short_audio_start)
+            file_timestamps_end_long[sorted_indexes[i]].insert(index, short_audio_end)
+            speakers_long[sorted_indexes[i]].insert(index, speakers_short[i][0])
+
+        file_timestamps_start = list(chain.from_iterable(file_timestamps_start_long))
+        file_timestamps_end = list(chain.from_iterable(file_timestamps_end_long))
+        speakers = list(chain.from_iterable(speakers_long))
+
+        file_timestamps_start_vad = [min(timestamp_start, len(audio_file)/ self.sample_rate) for timestamp_start in file_timestamps_start]
+        file_timestamps_end_vad = [min(timestamp_end, len(audio_file)/ self.sample_rate) for timestamp_end in file_timestamps_end]
+
+        return audio_file, file_timestamps_start, file_timestamps_end, speakers
+
+
     def concatenate(
         self,
         files,
@@ -251,68 +350,47 @@ class SyntheticDataset:
             for i in range(len(files["audio"]))
         ]
 
-        audio_duration = self.estimate_audio_duration(batch, sr)
-        audio_file = np.zeros(int(audio_duration * self.sample_rate))
-        audio_file_length = len(audio_file)
-
-        start = 0
-
         file_timestamps_start = []
         file_timestamps_end = []
         speakers = []
+        audio_segments = []
 
         for element in batch:
 
             audio_segment = element["audio"]["array"]
 
-            if self.sample_rate:
-                resample = T.Resample(sr, self.sample_rate)
-                audio_segment = (
-                    resample(torch.tensor(audio_segment, dtype=torch.float32))
-                    .cpu()
-                    .numpy()
-                )
+            resample = T.Resample(sr, self.sample_rate)
+            audio_segment = (
+                resample(torch.tensor(audio_segment, dtype=torch.float32))
+                .cpu()
+                .numpy()
+            )
 
             if self.normalize:
                 audio_segment = self.normalize_audio(audio_segment)
+            
+            (
+                audio_segment, 
+                timestamps_start_vad,
+                timestamps_end_vad,
+                speakers_vad,
+            ) = self.refine_timestamps(
+                audio_segment,
+                element["client_id"],
+            )
+            file_timestamps_start.append(timestamps_start_vad)
+            file_timestamps_end.append(timestamps_end_vad)
+            speakers.append(speakers_vad)
+            audio_segments.append(audio_segment)
 
-
-            start_index = int(start * self.sample_rate)
-
-            if start_index >= audio_file_length:
-                break
-
-            if self.refine_with_vad:
-                (
-                    audio_segment, 
-                    file_timestamps_start_vad,
-                    file_timestamps_end_vad,
-                    speakers_vad,
-                ) = self.refine_timestamps(
-                    audio_segment,
-                    element["client_id"],
-                    start,
-                )
-                end = start + len(audio_segment) / self.sample_rate
-                file_timestamps_start_vad = [min(timestamp_start, len(audio_file)/ self.sample_rate) for timestamp_start in file_timestamps_start_vad]
-                file_timestamps_end_vad = [min(timestamp_end, len(audio_file)/ self.sample_rate) for timestamp_end in file_timestamps_end_vad]
-                file_timestamps_start += file_timestamps_start_vad
-                file_timestamps_end += file_timestamps_end_vad
-                speakers += speakers_vad
-
-            else:
-                end = start + len(audio_segment) / self.sample_rate
-                file_timestamps_start.append(min(start, len(audio_file)/ self.sample_rate))
-                file_timestamps_end.append(min(end, len(audio_file) / self.sample_rate))
-                speakers.append(element["client_id"])
-
-            segment_length = min(audio_file_length - start_index, len(audio_segment))
-
-            audio_file[start_index : start_index + segment_length] += audio_segment[
-                :segment_length
-            ]
-
-            start = end + np.random.rayleigh(0.002) - 0.002
+        (
+            audio_file, 
+            file_timestamps_start, 
+            file_timestamps_end, 
+            speakers
+        ) = self.insert_audio_segments(
+            audio_segments, file_timestamps_start, file_timestamps_end, speakers
+        )
 
         if self.silent_regions:
             
@@ -344,7 +422,6 @@ class SyntheticDataset:
         new_batch["timestamps_end"].append(file_timestamps_end)
 
         return new_batch
-
 
     def create_spd_dataset(
         self, 
@@ -386,27 +463,11 @@ class SyntheticDataset:
                 {"audio": [], "speakers": [], "timestamps_start": [], "timestamps_end": []}
             )
 
-            # asr_dataset[str(subset)] = asr_dataset[str(subset)].shuffle().select(range(30))
-            # speakers = set(asr_dataset[str(subset)]["client_id"])
-
-            # while len(speakers) > 5:xzzz
-            # n_speakers = random.randint(3, 10)
-            # sampled_speakers = random.sample(speakers, min(n_speakers, len(speakers)))
-
-            # dataset = asr_dataset[str(subset)].filter(
-            #                 lambda x: x in sampled_speakers, input_columns=['client_id']
-            #             )
-            # speakers.difference_update(set(sampled_speakers))
-
             nb_samples = min(self.num_samples * self.batch_size, len(self.input_dataset[str(subset)]))
-
             if subset in ['validation', 'test']: 
                 nb_samples = int(0.2 * nb_samples)
 
             dataset = self.input_dataset[str(subset)].shuffle().select(range(nb_samples))
-
-
-
 
             result = dataset.map(
                 lambda example: self.concatenate(example),
@@ -416,9 +477,9 @@ class SyntheticDataset:
                 num_proc=num_proc,
             ).cast_column("audio", Audio(sampling_rate=self.sample_rate))
 
-            concatenate_dataset = concatenate_datasets([concatenate_dataset, result])
+            dataset = concatenate_datasets([concatenate_dataset, result])
 
-            self.spd_dataset[str(subset)] = concatenate_dataset
+            self.spd_dataset[str(subset)] = dataset
 
         if num_proc>1: 
             copyreg.dispatch_table.pop(type(self.vad_model), None)

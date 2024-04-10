@@ -20,3 +20,4 @@ if __name__ == "__main__":
 
     preprocessed_dataset = Preprocess(ds, model).preprocess_dataset(num_proc=24)
     preprocessed_dataset.push_to_hub("kamilakesbi/cv_for_spd_fr_processed")
+    
