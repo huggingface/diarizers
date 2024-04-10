@@ -82,7 +82,7 @@ class SyntheticDataset:
                 ]
             )
 
-    def estimate_concat_audio_length(self, audio_segments):
+    def estimate_concat_audio_length(self, audio_segments, threshold = None):
         """_summary_
 
         Args:
@@ -94,6 +94,12 @@ class SyntheticDataset:
         """
 
         audio_duration = 0
+         
+        if threshold != None: 
+            self.short_audio_threshold = threshold 
+        else: 
+            self.short_audio_threshold = sorted([len(audio_segment) / self.sample_rate for audio_segment in audio_segments])[0]
+
         for audio_segment in audio_segments:
             duration = len(audio_segment) / self.sample_rate
             if duration > self.short_audio_threshold: 
@@ -234,10 +240,11 @@ class SyntheticDataset:
         file_timestamps_start_vad, 
         file_timestamps_end_vad, 
         speakers_vad, 
+        threshold = None, 
     ): 
 
         start = 0
-        audio_duration = self.estimate_concat_audio_length(audio_segments)
+        audio_duration = self.estimate_concat_audio_length(audio_segments, threshold)
         audio_file = np.zeros(int(audio_duration * self.sample_rate))
         audio_file_length = len(audio_file)
 
@@ -281,44 +288,47 @@ class SyntheticDataset:
                 speakers_short.append(speakers_vad[i])
 
         sorted_indexes = [e[0] for e in sorted(enumerate(segments_durations_long), key=lambda x: x[1], reverse=True)]
+        
+        assert len(sorted_indexes) > 0, 'len(sorted_indexes)==0 is True'
 
-        for i in range(len(short_audios_segments)): 
+        if len(short_audios_segments) > 0: 
+            for i in range(len(short_audios_segments)): 
 
-            if i >= len(sorted_indexes): 
-                break
-            
-            short_audio_segment = short_audios_segments[i]
-            short_audio_duration = (len(short_audio_segment)/self.sample_rate)
-            timestamps_start_short = file_timestamps_start_short[i]
-            timestamps_end_short = file_timestamps_end_short[i]
+                if i >= len(sorted_indexes): 
+                    break
+                
+                short_audio_segment = short_audios_segments[i]
+                short_audio_duration = (len(short_audio_segment)/self.sample_rate)
+                timestamps_start_short = file_timestamps_start_short[i]
+                timestamps_end_short = file_timestamps_end_short[i]
 
-            start = file_timestamps_start_long[sorted_indexes[i]][0]
-            end = max(file_timestamps_end_long[sorted_indexes[i]])
+                start = file_timestamps_start_long[sorted_indexes[i]][0]
+                end = max(file_timestamps_end_long[sorted_indexes[i]])
 
-            assert short_audio_duration < end-start
+                assert short_audio_duration < end-start
 
-            short_audio_start = np.random.uniform(start, end - short_audio_duration)
-            insert_index_start = int(short_audio_start * self.sample_rate)
-            segment_length = int(short_audio_duration * self.sample_rate)
+                short_audio_start = np.random.uniform(start, end - short_audio_duration)
+                insert_index_start = int(short_audio_start * self.sample_rate)
+                segment_length = int(short_audio_duration * self.sample_rate)
 
-            short_audio_end = short_audio_start + short_audio_duration
+                short_audio_end = short_audio_start + short_audio_duration
 
-            audio_file[insert_index_start : insert_index_start + segment_length] += short_audio_segment[
-                    :segment_length
-                ]
-            
-            index = bisect.bisect_left(file_timestamps_start_long[sorted_indexes[i]], short_audio_start)
+                audio_file[insert_index_start : insert_index_start + segment_length] += short_audio_segment[
+                        :segment_length
+                    ]
+                
+                index = bisect.bisect_left(file_timestamps_start_long[sorted_indexes[i]], short_audio_start)
 
-            file_timestamps_start_long[sorted_indexes[i]].insert(index, short_audio_start)
-            file_timestamps_end_long[sorted_indexes[i]].insert(index, short_audio_end)
-            speakers_long[sorted_indexes[i]].insert(index, speakers_short[i][0])
+                file_timestamps_start_long[sorted_indexes[i]].insert(index, short_audio_start)
+                file_timestamps_end_long[sorted_indexes[i]].insert(index, short_audio_end)
+                speakers_long[sorted_indexes[i]].insert(index, speakers_short[i][0])
 
         file_timestamps_start = list(chain.from_iterable(file_timestamps_start_long))
         file_timestamps_end = list(chain.from_iterable(file_timestamps_end_long))
         speakers = list(chain.from_iterable(speakers_long))
 
-        file_timestamps_start_vad = [min(timestamp_start, len(audio_file)/ self.sample_rate) for timestamp_start in file_timestamps_start]
-        file_timestamps_end_vad = [min(timestamp_end, len(audio_file)/ self.sample_rate) for timestamp_end in file_timestamps_end]
+        file_timestamps_start = [min(timestamp_start, len(audio_file)/ self.sample_rate) for timestamp_start in file_timestamps_start]
+        file_timestamps_end = [min(timestamp_end, len(audio_file)/ self.sample_rate) for timestamp_end in file_timestamps_end]
 
         return audio_file, file_timestamps_start, file_timestamps_end, speakers
 
@@ -382,15 +392,27 @@ class SyntheticDataset:
             file_timestamps_end.append(timestamps_end_vad)
             speakers.append(speakers_vad)
             audio_segments.append(audio_segment)
-
-        (
-            audio_file, 
-            file_timestamps_start, 
-            file_timestamps_end, 
-            speakers
-        ) = self.insert_audio_segments(
-            audio_segments, file_timestamps_start, file_timestamps_end, speakers
-        )
+        
+        # Could happen that len(audio_segments)!= self.batch_size when proc > 1:
+        if len(audio_segments) == self.batch_size: 
+            (
+                audio_file, 
+                file_timestamps_start, 
+                file_timestamps_end, 
+                speakers
+            ) = self.insert_audio_segments(
+                audio_segments, file_timestamps_start, file_timestamps_end, speakers
+            )
+        else:
+            ## In that case, we don't have enough 
+            (
+                audio_file, 
+                file_timestamps_start, 
+                file_timestamps_end, 
+                speakers
+            ) = self.insert_audio_segments(
+                audio_segments, file_timestamps_start, file_timestamps_end, speakers, threshold=0
+            )
 
         if self.silent_regions:
             
@@ -463,10 +485,13 @@ class SyntheticDataset:
                 {"audio": [], "speakers": [], "timestamps_start": [], "timestamps_end": []}
             )
 
-            nb_samples = min(self.num_samples * self.batch_size, len(self.input_dataset[str(subset)]))
+            if subset == 'train': 
+                num_samples = self.num_samples
             if subset in ['validation', 'test']: 
-                nb_samples = int(0.2 * nb_samples)
+                num_samples = int(0.2 * self.num_samples)
 
+            nb_samples = min(num_samples * self.batch_size, len(self.input_dataset[str(subset)]))
+            
             dataset = self.input_dataset[str(subset)].shuffle().select(range(nb_samples))
 
             result = dataset.map(
