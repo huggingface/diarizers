@@ -2,6 +2,14 @@ from datasets import Dataset, Audio, DatasetDict
 
 
 class SpeakerDiarizationDataset: 
+    """
+    Convert a speaker diarization dataset made of <audio files, rttm files>
+    into a HF dataset with the following features: 
+        - "audio": Audio feature. 
+        - "speakers": The list of audio speakers, with their order of appearance. 
+        - "timestamps_start": A list of timestamps indicating the start of each speaker segment.
+        - "timestamps_end": A list of timestamps indicating the end of each speaker segment.
+    """
 
     def __init__(
         self, 
@@ -9,12 +17,29 @@ class SpeakerDiarizationDataset:
         rttm_paths, 
         sample_rate=16000,  
     ):
+        """
+        Args:
+            audio_paths (dict): A dict with keys (str): split subset - example: "train" and values: list of str paths to audio files.  
+            rttm_paths (dict): A dict with keys (str): split subset - example: "train" and values: list of str paths to RTTM files.  
+            sample_rate (int, optional): Audios sampling rate in the generated HF dataset. Defaults to 16000.
+        """
         self.audio_paths = audio_paths
         self.rttm_paths = rttm_paths
         self.sample_rate = sample_rate
 
     def process_rttm_file(self, path_to_rttm): 
-        
+        """ extract the list of timestamps_start, timestamps_end and speakers
+        from an RTTM file with path: path_to_rttm. 
+
+        Args:
+            path_to_rttm (str): path to the RTTM file. 
+
+        Returns:
+            timestamps_start (list):  A list of timestamps indicating the start of each speaker segment.
+            timestamps_end (list): A list of timestamps indicating the end of each speaker segment.
+            speakers (list): The list of audio speakers, with their order of appearance. 
+        """
+
         timestamps_start = []
         timestamps_end = []
         speakers = []
@@ -37,6 +62,11 @@ class SpeakerDiarizationDataset:
         return timestamps_start, timestamps_end, speakers
 
     def construct_dataset(self): 
+        """ Main method to construct the dataset 
+
+        Returns:
+            self.spd_dataset: HF dataset compatible with diarizers. 
+        """
 
         self.spd_dataset = DatasetDict()
 

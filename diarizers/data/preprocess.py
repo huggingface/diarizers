@@ -2,9 +2,7 @@ import math
 
 import numpy as np
 from datasets import Dataset, DatasetDict
-from pyannote.audio.models.segmentation import PyanNet
 import torch
-from pyannote.audio.core.task import Problem, Resolution, Specifications
 
 class Preprocess: 
 
@@ -23,21 +21,6 @@ class Preprocess:
 
         self.model = model
         self.model = self.model.to_pyannote_model()
-        # self.model = PyanNet(sincnet={"stride": 10})
-    
-        # self.model.specifications = Specifications(
-        #             problem=Problem.MULTI_LABEL_CLASSIFICATION
-        #             if self.max_speakers_per_frame is None
-        #             else Problem.MONO_LABEL_CLASSIFICATION,
-        #             resolution=Resolution.FRAME,
-        #             duration= self.chunk_duration,
-        #             min_duration=self.min_duration,
-        #             warm_up=self.warm_up,
-        #             classes=[f"speaker#{i+1}" for i in range(self.max_speakers_per_chunk)],
-        #             powerset_max_classes=self.max_speakers_per_frame,
-        #             permutation_invariant=True,
-        #         )
-        # self.model.build()
 
         # Get the number of frames associated to a chunk:
         self.sample_rate = input_dataset['train'][0]['audio']['sampling_rate']

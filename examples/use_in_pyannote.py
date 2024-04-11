@@ -7,8 +7,6 @@ import argparse
 from pyannote.audio import Pipeline
 from pyannote.audio.pipelines.utils.hook import ProgressHook
 
-
-
 if __name__ == '__main__': 
 
     parser = argparse.ArgumentParser()
@@ -23,9 +21,8 @@ if __name__ == '__main__':
     waveform = torch.tensor(ds[0]['audio']['array']).unsqueeze(0).to(torch.float32)
     sample_rate =  ds[0]['audio']['sampling_rate']
     input = {'waveform': waveform, 'sample_rate': sample_rate}
-
     
-    # Select the fin-tuned model: 
+    # Select the fine-tuned model: 
     model = SegmentationModel().from_pretrained('checkpoints/ami')
 
     model = model.to_pyannote_model()
