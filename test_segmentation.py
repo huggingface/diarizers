@@ -9,7 +9,7 @@ from diarizers.utils import train_val_test_split
 
 if __name__ == "__main__":
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
     parser = argparse.ArgumentParser()
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     
     test_dataset = dataset['test']
     
-    if str(args.pretrained_or_finetuned) == 'finetuned': 
+    if str(args.pretrained_or_finetuned) == 'finetuned':
         model = SegmentationModel()
         model = model.from_pretrained(str(args.checkpoint_path))
         model = model.to_pyannote_model()

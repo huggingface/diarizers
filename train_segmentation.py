@@ -12,7 +12,7 @@ from pyannote.audio import Model
 
 if __name__ == "__main__":
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
     parser = argparse.ArgumentParser()
     # dataset arguments:
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     # Training Arguments:
     parser.add_argument("--lr", help="", default=1e-3)
     parser.add_argument("--batch_size", help="", default=32)
-    parser.add_argument("--epochs", help="", default=1)
+    parser.add_argument("--epochs", help="", default=3)
 
     # Test arguments:
     parser.add_argument("--do_init_eval", help="", default=True)
