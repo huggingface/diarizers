@@ -1,6 +1,8 @@
 import glob
 from diarizers.data.speaker_diarization import SpeakerDiarizationDataset
 import argparse
+import os 
+import copy
 
 def get_ami_files(
         path_to_ami, 
@@ -29,12 +31,23 @@ def get_ami_files(
     }
     
     for subset in rttm_paths: 
-        for rttm in rttm_paths[subset]: 
+
+        rttm_list = copy.deepcopy(rttm_paths[subset])
+
+        for rttm in rttm_list: 
             meeting = rttm.split('/')[-1].split('.')[0]
             if hm_type == 'ihm': 
-                audio_paths[subset].append( path_to_ami + '/AMI-diarization-setup/pyannote/amicorpus/{}/audio/{}.Mix-Headset.wav'.format(meeting, meeting))
+                path = path_to_ami + '/AMI-diarization-setup/pyannote/amicorpus/{}/audio/{}.Mix-Headset.wav'.format(meeting, meeting)
+                if os.path.exists(path):
+                    audio_paths[subset].append(path)
+                else: 
+                    rttm_paths[subset].remove(rttm)
             if hm_type == 'sdm': 
-                audio_paths[subset].append( path_to_ami + '/AMI-diarization-setup/pyannote/amicorpus/{}/audio/{}.Array1-01.wav'.format(meeting, meeting))
+                path = path_to_ami + '/AMI-diarization-setup/pyannote/amicorpus/{}/audio/{}.Array1-01.wav'.format(meeting, meeting)
+                if os.path.exists(path):
+                    audio_paths[subset].append(path)
+                else: 
+                    rttm_paths[subset].remove(rttm)
 
     return rttm_paths, audio_paths
 
@@ -52,12 +65,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     rttm_paths, audio_paths = get_ami_files(path_to_ami=args.path_to_ami, setup=args.setup, hm_type = 'ihm')
+
     ami_dataset_ihm = SpeakerDiarizationDataset(audio_paths, rttm_paths).construct_dataset()
     
     if args.push_to_hub == 'True': 
         ami_dataset_ihm.push_to_hub(args.hub_repository,'ihm')
 
     rttm_paths, audio_paths = get_ami_files(path_to_ami=args.path_to_ami, setup=args.setup, hm_type = 'sdm')
+
     ami_dataset_sdm = SpeakerDiarizationDataset(audio_paths, rttm_paths).construct_dataset()
     
     if args.push_to_hub == 'True': 
