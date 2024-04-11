@@ -14,7 +14,6 @@ from denoiser import pretrained
 from denoiser.dsp import convert_audio
 import copyreg
 import os
-from operator import itemgetter
 from itertools import chain
 import bisect
 
@@ -183,17 +182,14 @@ class SyntheticDataset:
                 (timestamps["end"]- speech_timestamps[0]['start']) / self.sample_rate
                 for timestamps in speech_timestamps
             ]
-        else: 
-            file_timestamps_start = [
-                timestamps["start"]/ self.sample_rate
-                for timestamps in speech_timestamps
-            ]
-            file_timestamps_end = [
-                timestamps["end"] / self.sample_rate
-                for timestamps in speech_timestamps
-            ]
+            speakers = [speaker] * len(speech_timestamps)
 
-        speakers = [speaker] * len(speech_timestamps)
+        else: 
+            file_timestamps_start = [0]
+            file_timestamps_end = [len(audio_segment)/self.sample_rate]
+            speakers = [speaker]
+
+        assert len(speakers) > 0
 
         return (audio_segment, file_timestamps_start, file_timestamps_end, speakers)
 
@@ -255,8 +251,6 @@ class SyntheticDataset:
         speakers_long = []
         segments_durations_long = []
 
-        file_timestamps_start_short = []
-        file_timestamps_end_short = []
         speakers_short = []
 
         for i, audio_segment in enumerate(audio_segments): 
@@ -283,14 +277,10 @@ class SyntheticDataset:
                 start = end + np.random.rayleigh(0.002) - 0.002
             else: 
                 short_audios_segments.append(audio_segment)
-                file_timestamps_start_short.append(file_timestamps_start_vad[i])
-                file_timestamps_end_short.append(file_timestamps_end_vad[i])
                 speakers_short.append(speakers_vad[i])
 
         sorted_indexes = [e[0] for e in sorted(enumerate(segments_durations_long), key=lambda x: x[1], reverse=True)]
         
-        assert len(sorted_indexes) > 0, 'len(sorted_indexes)==0 is True'
-
         if len(short_audios_segments) > 0: 
             for i in range(len(short_audios_segments)): 
 
@@ -299,9 +289,6 @@ class SyntheticDataset:
                 
                 short_audio_segment = short_audios_segments[i]
                 short_audio_duration = (len(short_audio_segment)/self.sample_rate)
-                timestamps_start_short = file_timestamps_start_short[i]
-                timestamps_end_short = file_timestamps_end_short[i]
-
                 start = file_timestamps_start_long[sorted_indexes[i]][0]
                 end = max(file_timestamps_end_long[sorted_indexes[i]])
 
@@ -394,25 +381,25 @@ class SyntheticDataset:
             audio_segments.append(audio_segment)
         
         # Could happen that len(audio_segments)!= self.batch_size when proc > 1:
-        if len(audio_segments) == self.batch_size: 
-            (
-                audio_file, 
-                file_timestamps_start, 
-                file_timestamps_end, 
-                speakers
-            ) = self.insert_audio_segments(
-                audio_segments, file_timestamps_start, file_timestamps_end, speakers
-            )
-        else:
-            ## In that case, we don't have enough 
-            (
-                audio_file, 
-                file_timestamps_start, 
-                file_timestamps_end, 
-                speakers
-            ) = self.insert_audio_segments(
-                audio_segments, file_timestamps_start, file_timestamps_end, speakers, threshold=0
-            )
+        # if len(audio_segments) == self.batch_size: 
+        (
+            audio_file, 
+            file_timestamps_start, 
+            file_timestamps_end, 
+            speakers
+        ) = self.insert_audio_segments(
+            audio_segments, file_timestamps_start, file_timestamps_end, speakers
+        )
+        # else:
+        #     ## In that case, we don't have enough 
+        #     (
+        #         audio_file, 
+        #         file_timestamps_start, 
+        #         file_timestamps_end, 
+        #         speakers
+        #     ) = self.insert_audio_segments(
+        #         audio_segments, file_timestamps_start, file_timestamps_end, speakers, threshold=0
+        #     )
 
         if self.silent_regions:
             
@@ -474,7 +461,7 @@ class SyntheticDataset:
         )
 
         if num_proc>1: 
-            ## serialize vad_model to allow multiprocessing in the map function
+            # serialize vad_model to allow multiprocessing in the map function
             copyreg.pickle(type(self.vad_model), pickle_model)
 
         self.input_dataset.select_columns([str(self.speaker_column_name), str(self.audio_column_name)])
@@ -489,6 +476,10 @@ class SyntheticDataset:
                 num_samples = self.num_samples
             if subset in ['validation', 'test']: 
                 num_samples = int(0.2 * self.num_samples)
+            
+            if num_proc>1:
+                # Do this to force all batches to have the same size when num_proc > 1: 
+                num_samples = (num_samples // num_proc) * num_proc
 
             nb_samples = min(num_samples * self.batch_size, len(self.input_dataset[str(subset)]))
             
