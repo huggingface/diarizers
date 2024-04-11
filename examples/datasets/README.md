@@ -20,6 +20,25 @@ python3 -m examples.datasets.ami \
     --hub_repository=kamilakesbi/ami
 ```
 
+## CALLHOME: 
+
+Download for each langage (example here japanese): 
+
+```
+!wget https://ca.talkbank.org/data/CallHome/jpn.zip
+!wget -r -np -nH --cut-dirs=2 -R index.html* https://media.talkbank.org/ca/CallHome/jpn/
+!unzip jpn.zip
+```
+
+Use this script to compute and push the `Japanese, English, Chinese, German and Spanish Callhome` dataset to the hub: 
+
+```
+python3 -m examples.datasets.callhome \
+    --path_to_callhome=/home/kamil/datasets \
+    --push_to_hub=True \
+    --hub_repository=kamilakesbi/callhome \
+```
+
 ## VOXCONVERSE: 
 
 ```
@@ -36,24 +55,6 @@ python3 -m examples.datasets.voxconverse
     --hub_repository=speaker_diarization/voxconverse
 ```
 
-## CALLHOME: 
+## SIMSAMU: 
 
-Japanese: 
-
-```
-!wget https://ca.talkbank.org/data/CallHome/jpn.zip
-!wget -r -np -nH --cut-dirs=2 -R index.html* https://media.talkbank.org/ca/CallHome/jpn/
-!unzip jpn.zip
-```
-
-Push the dataset to hub: 
-
-```
-python3 -m examples.datasets.callhome \
-    --path_to_callhome=/home/kamil/datasets \
-    --push_to_hub=True \
-    --hub_repository=kamilakesbi/callhome \
-```
-
-Same steps to download and push to hub the spanish, english, german or chinese versions of the callhome dataset. 
 
