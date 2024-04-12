@@ -1,19 +1,25 @@
 import numpy as np
 import torch
+from pyannote.audio import Inference
+from pyannote.audio.pipelines.utils import get_devices
+from pyannote.audio.torchmetrics import (DiarizationErrorRate, FalseAlarmRate,
+                                         MissedDetectionRate,
+                                         SpeakerConfusionRate)
 from pyannote.core import SlidingWindow, SlidingWindowFeature
 from tqdm import tqdm
 
-from pyannote.audio import Inference
-from pyannote.audio.pipelines.utils import get_devices
-from pyannote.audio.torchmetrics import (
-    DiarizationErrorRate,
-    FalseAlarmRate,
-    MissedDetectionRate,
-    SpeakerConfusionRate,
-)
 
 class Test:
+    """Class used to evaluate a SegmentationModel at inference time on a test set."""
+
     def __init__(self, test_dataset, model, step=2.5):
+        """_summary_
+
+        Args:
+            test_dataset (_type_): _description_
+            model (_type_): _description_
+            step (float, optional): _description_. Defaults to 2.5.
+        """
 
         self.test_dataset = test_dataset
         self.model = model
@@ -24,9 +30,7 @@ class Test:
 
         # Get the number of frames associated to a chunk:
         _, self.num_frames, _ = self.inference.model(
-            torch.rand((1, int(self.inference.duration * self.sample_rate))).to(
-                self.device
-            )
+            torch.rand((1, int(self.inference.duration * self.sample_rate))).to(self.device)
         ).shape
         # compute frame resolution:
         self.resolution = self.inference.duration / self.num_frames
@@ -39,12 +43,15 @@ class Test:
         }
 
     def predict(self, file):
-        audio = (
-            torch.tensor(file["audio"]["array"])
-            .unsqueeze(0)
-            .to(torch.float32)
-            .to(self.device)
-        )
+        """_summary_
+
+        Args:
+            file (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        audio = torch.tensor(file["audio"]["array"]).unsqueeze(0).to(torch.float32).to(self.device)
         sample_rate = file["audio"]["sampling_rate"]
 
         input = {"waveform": audio, "sample_rate": sample_rate}
@@ -54,6 +61,14 @@ class Test:
         return prediction
 
     def compute_gt(self, file):
+        """_summary_
+
+        Args:
+            file (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
 
         audio = torch.tensor(file["audio"]["array"]).unsqueeze(0).to(torch.float32)
         sample_rate = file["audio"]["sampling_rate"]
@@ -78,21 +93,21 @@ class Test:
         return gt
 
     def compute_metrics_on_file(self, file):
+        """_summary_
+
+        Args:
+            file (_type_): _description_
+        """
 
         gt = self.compute_gt(file)
         prediction = self.predict(file)
 
-        sliding_window = SlidingWindow(
-            start=0, step=self.resolution, duration=self.resolution
-        )
+        sliding_window = SlidingWindow(start=0, step=self.resolution, duration=self.resolution)
         labels = list(set(file["speakers"]))
 
-        reference = SlidingWindowFeature(
-            data=gt, labels=labels, sliding_window=sliding_window
-        )
+        reference = SlidingWindowFeature(data=gt, labels=labels, sliding_window=sliding_window)
 
         for window, pred in prediction:
-
             reference_window = reference.crop(window, mode="center")
             common_num_frames = min(self.num_frames, reference_window.shape[0])
 
@@ -100,33 +115,24 @@ class Test:
             pred_num_frames, pred_num_speakers = pred.shape
 
             if pred_num_speakers > ref_num_speakers:
-                reference_window = np.pad(
-                    reference_window, ((0, 0), (0, pred_num_speakers - ref_num_speakers))
-                )
+                reference_window = np.pad(reference_window, ((0, 0), (0, pred_num_speakers - ref_num_speakers)))
             elif ref_num_speakers > pred_num_speakers:
-                pred = np.pad(
-                    pred, ((0, 0), (0, ref_num_speakers - pred_num_speakers))
-                )
+                pred = np.pad(pred, ((0, 0), (0, ref_num_speakers - pred_num_speakers)))
 
-            pred = (
-                torch.tensor(pred[:common_num_frames])
-                .unsqueeze(0)
-                .permute(0, 2, 1)
-                .to(self.device)
-            )
-            target = (
-                torch.tensor(reference_window[:common_num_frames])
-                .unsqueeze(0)
-                .permute(0, 2, 1)
-            ).to(self.device)
+            pred = torch.tensor(pred[:common_num_frames]).unsqueeze(0).permute(0, 2, 1).to(self.device)
+            target = (torch.tensor(reference_window[:common_num_frames]).unsqueeze(0).permute(0, 2, 1)).to(self.device)
 
             self.metrics["der"](pred, target)
             self.metrics["false_alarm"](pred, target)
             self.metrics["missed_detection"](pred, target)
             self.metrics["confusion"](pred, target)
-        
 
     def compute_metrics(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
 
         for file in tqdm(self.test_dataset):
             self.compute_metrics_on_file(file)
@@ -137,4 +143,3 @@ class Test:
             "missed_detection": self.metrics["missed_detection"].compute(),
             "confusion": self.metrics["confusion"].compute(),
         }
-

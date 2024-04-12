@@ -2,14 +2,14 @@ import copy
 from typing import Optional
 
 import torch
-from diarizers.models.segmentation.pyannet import PyanNet_nn
-from transformers import PretrainedConfig, PreTrainedModel
-
 from pyannote.audio.core.task import Problem, Resolution, Specifications
 from pyannote.audio.models.segmentation import PyanNet
 from pyannote.audio.utils.loss import binary_cross_entropy, nll_loss
 from pyannote.audio.utils.permutation import permutate
 from pyannote.audio.utils.powerset import Powerset
+from transformers import PretrainedConfig, PreTrainedModel
+
+from src.diarizers.models.segmentation.pyannet import PyanNet_nn
 
 
 class SegmentationModelConfig(PretrainedConfig):
@@ -27,7 +27,7 @@ class SegmentationModelConfig(PretrainedConfig):
         weigh_by_cardinality=False,
         **kwargs,
     ):
-        """Init method for the 
+        """Init method for the
         Args:
             chunk_duration : float, optional
                     Chunks duration processed by the model. Defaults to 10s.
@@ -37,13 +37,13 @@ class SegmentationModelConfig(PretrainedConfig):
                 Maximum number of (overlapping) speakers per frame.
                 Setting this value to 1 or more enables `powerset multi-class` training.
                 Default behavior is to use `multi-label` training.
-            weigh_by_cardinality: bool, optional               
+            weigh_by_cardinality: bool, optional
                 Weigh each powerset classes by the size of the corresponding speaker set.
                 In other words, {0, 1} powerset class weight is 2x bigger than that of {0}
                 or {1} powerset classes. Note that empty (non-speech) powerset class is
                 assigned the same weight as mono-speaker classes. Defaults to False (i.e. use
                 same weight for every class). Has no effect with `multi-label` training.
-            min_duration : float, optional                      
+            min_duration : float, optional
                 Sample training chunks duration uniformely between `min_duration`
                 and `duration`. Defaults to `duration` (i.e. fixed length chunks).
             warm_up : float or (float, float), optional
@@ -73,7 +73,7 @@ class SegmentationModel(PreTrainedModel):
 
     def __init__(
         self,
-        config=SegmentationModelConfig(), 
+        config=SegmentationModelConfig(),
     ):
         """init method
         Args:
@@ -106,7 +106,7 @@ class SegmentationModel(PreTrainedModel):
         self.model.build()
         self.setup_loss_func()
 
-    def forward(self, waveforms, labels=None):
+    def forward(self, waveforms, labels=None, nb_speakers=None):
         """foward pass of the Pretrained Model.
 
         Args:
@@ -122,38 +122,22 @@ class SegmentationModel(PreTrainedModel):
         batch_size, num_frames, _ = prediction.shape
 
         if labels is not None:
-
             weight = torch.ones(batch_size, num_frames, 1, device=waveforms.device)
-            warm_up_left = round(
-                self.specifications.warm_up[0]
-                / self.specifications.duration
-                * num_frames
-            )
+            warm_up_left = round(self.specifications.warm_up[0] / self.specifications.duration * num_frames)
             weight[:, :warm_up_left] = 0.0
-            warm_up_right = round(
-                self.specifications.warm_up[1]
-                / self.specifications.duration
-                * num_frames
-            )
+            warm_up_right = round(self.specifications.warm_up[1] / self.specifications.duration * num_frames)
             weight[:, num_frames - warm_up_right :] = 0.0
 
             if self.specifications.powerset:
-
                 multilabel = self.model.powerset.to_multilabel(prediction)
                 permutated_target, _ = permutate(multilabel, labels)
 
-                permutated_target_powerset = self.model.powerset.to_powerset(
-                    permutated_target.float()
-                )
-                loss = self.segmentation_loss(
-                    prediction, permutated_target_powerset, weight=weight
-                )
+                permutated_target_powerset = self.model.powerset.to_powerset(permutated_target.float())
+                loss = self.segmentation_loss(prediction, permutated_target_powerset, weight=weight)
 
             else:
                 permutated_prediction, _ = permutate(labels, prediction)
-                loss = self.segmentation_loss(
-                    permutated_prediction, labels, weight=weight
-                )
+                loss = self.segmentation_loss(permutated_prediction, labels, weight=weight)
 
             return {"loss": loss, "logits": prediction}
 
@@ -192,11 +176,7 @@ class SegmentationModel(PreTrainedModel):
 
         if self.specifications.powerset:
             # `clamp_min` is needed to set non-speech weight to 1.
-            class_weight = (
-                torch.clamp_min(self.model.powerset.cardinality, 1.0)
-                if self.weigh_by_cardinality
-                else None
-            )
+            class_weight = torch.clamp_min(self.model.powerset.cardinality, 1.0) if self.weigh_by_cardinality else None
             seg_loss = nll_loss(
                 permutated_prediction,
                 torch.argmax(target, dim=-1),
@@ -204,9 +184,7 @@ class SegmentationModel(PreTrainedModel):
                 weight=weight,
             )
         else:
-            seg_loss = binary_cross_entropy(
-                permutated_prediction, target.float(), weight=weight
-            )
+            seg_loss = binary_cross_entropy(permutated_prediction, target.float(), weight=weight)
 
         return seg_loss
 

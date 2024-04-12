@@ -1,24 +1,21 @@
 import numpy as np
 import torch
-
-from pyannote.audio.torchmetrics import (
-    DiarizationErrorRate,
-    FalseAlarmRate,
-    MissedDetectionRate,
-    SpeakerConfusionRate,
-)
+from pyannote.audio.torchmetrics import (DiarizationErrorRate, FalseAlarmRate,
+                                         MissedDetectionRate,
+                                         SpeakerConfusionRate)
 from pyannote.audio.utils.powerset import Powerset
+
 from datasets import DatasetDict
 
-def train_val_test_split(dataset, train_size=0.8, val_size=0.1, test_size=0.1): 
 
+def train_val_test_split(dataset, train_size=0.8, val_size=0.1, test_size=0.1):
     dataset_split = dataset.train_test_split(test_size=test_size, seed=42)
-    train_dataset = dataset_split['train']
-    test_dataset = dataset_split['test']
+    train_dataset = dataset_split["train"]
+    test_dataset = dataset_split["test"]
 
-    dataset = train_dataset.train_test_split(train_size=train_size/(train_size + val_size), seed=42)
-    train_dataset = dataset['train']
-    val_dataset = dataset['test']
+    dataset = train_dataset.train_test_split(train_size=train_size / (train_size + val_size), seed=42)
+    train_dataset = dataset["train"]
+    val_dataset = dataset["test"]
 
     return DatasetDict(
         {
@@ -31,7 +28,6 @@ def train_val_test_split(dataset, train_size=0.8, val_size=0.1, test_size=0.1):
 
 class Metrics:
     def __init__(self, specifications) -> None:
-
         self.powerset = specifications.powerset
         self.classes = specifications.classes
         self.powerset_max_classes = specifications.powerset_max_classes
@@ -49,7 +45,6 @@ class Metrics:
         }
 
     def der_metric(self, eval_pred):
-
         logits, labels = eval_pred
 
         if self.powerset:
@@ -65,23 +60,17 @@ class Metrics:
         metrics = {"der": 0, "false_alarm": 0, "missed_detection": 0, "confusion": 0}
 
         metrics["der"] += self.metrics["der"](predictions, labels).cpu().numpy()
-        metrics["false_alarm"] += (
-            self.metrics["false_alarm"](predictions, labels).cpu().numpy()
-        )
-        metrics["missed_detection"] += (
-            self.metrics["missed_detection"](predictions, labels).cpu().numpy()
-        )
-        metrics["confusion"] += (
-            self.metrics["confusion"](predictions, labels).cpu().numpy()
-        )
+        metrics["false_alarm"] += self.metrics["false_alarm"](predictions, labels).cpu().numpy()
+        metrics["missed_detection"] += self.metrics["missed_detection"](predictions, labels).cpu().numpy()
+        metrics["confusion"] += self.metrics["confusion"](predictions, labels).cpu().numpy()
 
         return metrics
+
 
 class DataCollator:
     """Data collator that will dynamically pad the target labels to have max_speakers_per_chunk"""
 
     def __init__(self, max_speakers_per_chunk) -> None:
-
         self.max_speakers_per_chunk = max_speakers_per_chunk
 
     def __call__(self, features):
@@ -121,7 +110,6 @@ class DataCollator:
         targets = []
 
         for i in range(len(labels)):
-
             label = speakers[i]
             target = labels[i].numpy()
             num_speakers = len(label)
@@ -140,4 +128,3 @@ class DataCollator:
             targets.append(target)
 
         return torch.from_numpy(np.stack(targets))
-

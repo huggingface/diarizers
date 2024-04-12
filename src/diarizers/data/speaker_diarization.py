@@ -1,14 +1,18 @@
 # Adapted from https://github.com/hbredin/pyannote-db-callhome/blob/master/parse_transcripts.py
-from datasets import Dataset, Audio, DatasetDict
-import numpy as np 
+import numpy as np
+
+from datasets import Audio, Dataset, DatasetDict
+
 
 def get_secs(x):
     return x * 4 * 2.0 / 8000
+
 
 def get_start_end(t1, t2):
     t1 = get_secs(t1)
     t2 = get_secs(t2)
     return t1, t2
+
 
 def represent_int(s):
     try:
@@ -17,31 +21,32 @@ def represent_int(s):
     except ValueError as e:
         return False
 
-class SpeakerDiarizationDataset: 
+
+class SpeakerDiarizationDataset:
     """
     Convert a speaker diarization dataset made of <audio files, annotations files>
-    into a HF dataset with the following features: 
-        - "audio": Audio feature. 
-        - "speakers": The list of audio speakers, with their order of appearance. 
+    into a HF dataset with the following features:
+        - "audio": Audio feature.
+        - "speakers": The list of audio speakers, with their order of appearance.
         - "timestamps_start": A list of timestamps indicating the start of each speaker segment.
         - "timestamps_end": A list of timestamps indicating the end of each speaker segment.
     """
 
     def __init__(
-        self, 
-        audio_paths, 
-        annotations_paths, 
-        sample_rate=16000, 
-        annotations_type='rttm', 
-        crop_unannotated_regions=False 
+        self,
+        audio_paths,
+        annotations_paths,
+        sample_rate=16000,
+        annotations_type="rttm",
+        crop_unannotated_regions=False,
     ):
         """
         Args:
-            audio_paths (dict): A dict with keys (str): split subset - example: "train" and values: list of str paths to audio files.  
-            annotations_paths (dict): A dict with keys (str): split subset - example: "train" and values: list of str paths to annotations files.  
+            audio_paths (dict): A dict with keys (str): split subset - example: "train" and values: list of str paths to audio files.
+            annotations_paths (dict): A dict with keys (str): split subset - example: "train" and values: list of str paths to annotations files.
             sample_rate (int, optional): Audios sampling rate in the generated HF dataset. Defaults to 16000.
         """
-        annotations_type in ['rttm', 'cha']
+        annotations_type in ["rttm", "cha"]
         self.audio_paths = audio_paths
         self.annotations_paths = annotations_paths
         self.sample_rate = sample_rate
@@ -49,56 +54,52 @@ class SpeakerDiarizationDataset:
         self.crop_unannotated_regions = crop_unannotated_regions
 
     def crop_audio(self, files):
-        # Load audio from path 
+        # Load audio from path
         new_batch = {
             "audio": [],
-            'timestamps_start': [],  
-            'timestamps_end': [], 
-            "speakers": [], 
+            "timestamps_start": [],
+            "timestamps_end": [],
+            "speakers": [],
         }
 
-        batch = [
-            {key: values[i] for key, values in files.items()}
-            for i in range(len(files["audio"]))
-        ]
+        batch = [{key: values[i] for key, values in files.items()} for i in range(len(files["audio"]))]
 
         for file in batch:
             # Crop audio based on timestamps (in samples)
 
-            # We add a file only if it's annotated: 
-            if len(file["timestamps_start"])!=0: 
+            # We add a file only if it's annotated:
+            if len(file["timestamps_start"]) != 0:
                 start_idx = int(file["timestamps_start"][0] * self.sample_rate)
                 end_idx = int(max(file["timestamps_end"]) * self.sample_rate)
 
-                waveform = file['audio']['array']
+                waveform = file["audio"]["array"]
 
                 audio = {
-                    "array": np.array(waveform[start_idx: end_idx]), 
-                    "sampling_rate": self.sample_rate, 
+                    "array": np.array(waveform[start_idx:end_idx]),
+                    "sampling_rate": self.sample_rate,
                 }
 
                 timestamps_start = [start - file["timestamps_start"][0] for start in file["timestamps_start"]]
                 timestamps_end = [end - file["timestamps_start"][0] for end in file["timestamps_end"]]
 
                 new_batch["audio"].append(audio)
-                new_batch['timestamps_start'].append(timestamps_start)
-                new_batch['timestamps_end'].append(timestamps_end)
-                new_batch['speakers'].append(file['speakers'])
-    
+                new_batch["timestamps_start"].append(timestamps_start)
+                new_batch["timestamps_end"].append(timestamps_end)
+                new_batch["speakers"].append(file["speakers"])
+
         return new_batch
 
-    def process_cha_file(self, path_to_cha): 
-
+    def process_cha_file(self, path_to_cha):
         timestamps_start = []
         timestamps_end = []
         speakers = []
 
-        line = open(path_to_cha, 'r').read().splitlines()
+        line = open(path_to_cha, "r").read().splitlines()
         for i, line in enumerate(line):
-            if line.startswith('*'):
-                id = line.split(':')[0][1:]
+            if line.startswith("*"):
+                id = line.split(":")[0][1:]
             splits = line.split(" ")
-            if splits[-1].find('_') != -1:
+            if splits[-1].find("_") != -1:
                 indexes = splits[-1].strip()
                 start = indexes.split("_")[0].strip()[1:]
                 end = indexes.split("_")[1].strip()[:-1]
@@ -111,17 +112,17 @@ class SpeakerDiarizationDataset:
 
         return timestamps_start, timestamps_end, speakers
 
-    def process_rttm_file(self, path_to_annotations): 
-        """ extract the list of timestamps_start, timestamps_end and speakers
-        from an annotations file with path: path_to_annotations. 
+    def process_rttm_file(self, path_to_annotations):
+        """extract the list of timestamps_start, timestamps_end and speakers
+        from an annotations file with path: path_to_annotations.
 
         Args:
-            path_to_annotations (str): path to the annotations file. 
+            path_to_annotations (str): path to the annotations file.
 
         Returns:
             timestamps_start (list):  A list of timestamps indicating the start of each speaker segment.
             timestamps_end (list): A list of timestamps indicating the end of each speaker segment.
-            speakers (list): The list of audio speakers, with their order of appearance. 
+            speakers (list): The list of audio speakers, with their order of appearance.
         """
 
         timestamps_start = []
@@ -129,15 +130,13 @@ class SpeakerDiarizationDataset:
         speakers = []
 
         with open(path_to_annotations, "r") as file:
-            
             lines = file.readlines()
             for line in lines:
-
                 fields = line.split()
 
                 speaker = fields[-3]
-                start_time = float(fields[3]) 
-                end_time  = start_time + float(fields[4])    
+                start_time = float(fields[3])
+                end_time = start_time + float(fields[4])
 
                 timestamps_start.append(start_time)
                 speakers.append(speaker)
@@ -145,51 +144,52 @@ class SpeakerDiarizationDataset:
 
         return timestamps_start, timestamps_end, speakers
 
-    def construct_dataset(self, num_proc=1): 
-        """ Main method to construct the dataset 
+    def construct_dataset(self, num_proc=1):
+        """Main method to construct the dataset
 
         Returns:
-            self.spd_dataset: HF dataset compatible with diarizers. 
+            self.spd_dataset: HF dataset compatible with diarizers.
         """
 
         self.spd_dataset = DatasetDict()
 
-        for subset in self.audio_paths: 
-
+        for subset in self.audio_paths:
             timestamps_start = []
             timestamps_end = []
             speakers = []
 
-            self.spd_dataset[str(subset)] =  Dataset.from_dict({})
+            self.spd_dataset[str(subset)] = Dataset.from_dict({})
 
-            for annotations in self.annotations_paths[subset]: 
-                
-                if self.annotations_type == 'rttm': 
+            for annotations in self.annotations_paths[subset]:
+                if self.annotations_type == "rttm":
                     timestamps_start_file, timestamps_end_file, speakers_file = self.process_rttm_file(annotations)
-                elif self.annotations_type == 'cha': 
+                elif self.annotations_type == "cha":
                     timestamps_start_file, timestamps_end_file, speakers_file = self.process_cha_file(annotations)
-
 
                 timestamps_start.append(timestamps_start_file)
                 timestamps_end.append(timestamps_end_file)
                 speakers.append(speakers_file)
 
-            self.spd_dataset[subset] = Dataset.from_dict({
-                "audio": self.audio_paths[subset], 
-                "timestamps_start": timestamps_start, 
-                "timestamps_end": timestamps_end, 
-                "speakers": speakers, 
-
-            }).cast_column("audio", Audio(sampling_rate=self.sample_rate))
+            self.spd_dataset[subset] = Dataset.from_dict(
+                {
+                    "audio": self.audio_paths[subset],
+                    "timestamps_start": timestamps_start,
+                    "timestamps_end": timestamps_end,
+                    "speakers": speakers,
+                }
+            ).cast_column("audio", Audio(sampling_rate=self.sample_rate))
 
             if self.crop_unannotated_regions:
-                self.spd_dataset[subset] = self.spd_dataset[subset].map(
-                    lambda example: self.crop_audio(example),
-                    batched=True,
-                    batch_size=8,
-                    remove_columns=self.spd_dataset[subset].column_names,
-                    num_proc=num_proc,
-                ).cast_column("audio", Audio(sampling_rate=self.sample_rate)) 
+                self.spd_dataset[subset] = (
+                    self.spd_dataset[subset]
+                    .map(
+                        lambda example: self.crop_audio(example),
+                        batched=True,
+                        batch_size=8,
+                        remove_columns=self.spd_dataset[subset].column_names,
+                        num_proc=num_proc,
+                    )
+                    .cast_column("audio", Audio(sampling_rate=self.sample_rate))
+                )
 
         return self.spd_dataset
-

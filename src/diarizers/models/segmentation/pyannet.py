@@ -5,14 +5,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
-from pyannote.core.utils.generators import pairwise
-
 from pyannote.audio.core.task import Problem
-
-# from pyannote.audio.core.model import Model
-# from pyannote.audio.core.task import Task
 from pyannote.audio.models.blocks.sincnet import SincNet
 from pyannote.audio.utils.params import merge_dict
+from pyannote.core.utils.generators import pairwise
 
 
 class Dict(dict):
@@ -67,7 +63,6 @@ class PyanNet_nn(torch.nn.Module):
         sample_rate: int = 16000,
         num_channels: int = 1,
     ):
-
         super(PyanNet_nn, self).__init__()
 
         sincnet = merge_dict(self.SINCNET_DEFAULTS, sincnet)
@@ -114,9 +109,7 @@ class PyanNet_nn(torch.nn.Module):
             self.lstm = nn.ModuleList(
                 [
                     nn.LSTM(
-                        60
-                        if i == 0
-                        else lstm["hidden_size"] * (2 if lstm["bidirectional"] else 1),
+                        60 if i == 0 else lstm["hidden_size"] * (2 if lstm["bidirectional"] else 1),
                         **one_layer_lstm,
                     )
                     for i in range(num_layers)
@@ -126,9 +119,7 @@ class PyanNet_nn(torch.nn.Module):
         if linear["num_layers"] < 1:
             return
 
-        lstm_out_features: int = self.hparams.lstm["hidden_size"] * (
-            2 if self.hparams.lstm["bidirectional"] else 1
-        )
+        lstm_out_features: int = self.hparams.lstm["hidden_size"] * (2 if self.hparams.lstm["bidirectional"] else 1)
         self.linear = nn.ModuleList(
             [
                 nn.Linear(in_features, out_features)
@@ -136,8 +127,7 @@ class PyanNet_nn(torch.nn.Module):
                     [
                         lstm_out_features,
                     ]
-                    + [self.hparams.linear["hidden_size"]]
-                    * self.hparams.linear["num_layers"]
+                    + [self.hparams.linear["hidden_size"]] * self.hparams.linear["num_layers"]
                 )
             ]
         )
@@ -156,7 +146,6 @@ class PyanNet_nn(torch.nn.Module):
     def default_activation(
         self,
     ):
-
         if self.specifications.problem == Problem.BINARY_CLASSIFICATION:
             return nn.Sigmoid()
 
@@ -173,9 +162,7 @@ class PyanNet_nn(torch.nn.Module):
         if self.hparams.linear["num_layers"] > 0:
             in_features = self.hparams.linear["hidden_size"]
         else:
-            in_features = self.hparams.lstm["hidden_size"] * (
-                2 if self.hparams.lstm["bidirectional"] else 1
-            )
+            in_features = self.hparams.lstm["hidden_size"] * (2 if self.hparams.lstm["bidirectional"] else 1)
 
         self.classifier = nn.Linear(in_features, self.dimension)
         self.activation = self.default_activation()
@@ -243,9 +230,7 @@ class PyanNet_nn(torch.nn.Module):
         outputs = self.sincnet(waveforms)
 
         if self.hparams.lstm["monolithic"]:
-            outputs, _ = self.lstm(
-                rearrange(outputs, "batch feature frame -> batch frame feature")
-            )
+            outputs, _ = self.lstm(rearrange(outputs, "batch feature frame -> batch frame feature"))
         else:
             outputs = rearrange(outputs, "batch feature frame -> batch frame feature")
             for i, lstm in enumerate(self.lstm):
