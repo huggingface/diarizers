@@ -5,7 +5,7 @@ import os
 
 from pydub import AudioSegment
 
-from diarizers.data.speaker_diarization import SpeakerDiarizationDataset
+from src.diarizers.data.speaker_diarization import SpeakerDiarizationDataset
 
 
 def get_ami_files(path_to_ami, setup="only_words", hm_type="ihm"):
