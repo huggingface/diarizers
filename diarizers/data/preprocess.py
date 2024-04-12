@@ -1,3 +1,4 @@
+# Adapted from https://github.com/pyannote/pyannote-audio/blob/develop/pyannote/audio/tasks/segmentation/speaker_diarization.py
 import math
 
 import numpy as np
@@ -5,13 +6,26 @@ from datasets import Dataset, DatasetDict
 import torch
 
 class Preprocess: 
+    """Converts a HF dataset with the following features: 
+        - "audio": Audio feature. 
+        - "speakers": The list of audio speakers, with their order of appearance. 
+        - "timestamps_start": A list of timestamps indicating the start of each speaker segment.
+        - "timestamps_end": A list of timestamps indicating the end of each speaker segment.
+    to a preprocessed dataset ready to be used with the HF Trainer. 
+    """
 
     def __init__(
         self, 
         input_dataset, 
         model, 
     ): 
-        
+        """Preprocess init method. 
+        Takes as input the dataset to process and the model to perform training with. 
+        The preprocessing is done to fit the hyperparameters of the model.  
+        Args:
+            input_dataset (dataset): Hugging Face Speaker Diarization dataset
+            model (SegmentationModel): A SegmentationModel from the diarizers library. 
+        """
         self.input_dataset = input_dataset
         self.chunk_duration = model.chunk_duration
         self.max_speakers_per_frame = model.max_speakers_per_frame
@@ -29,12 +43,12 @@ class Preprocess:
 
 
     def get_labels_in_file(self, file):
-        """Get speakers
+        """Get speakers present in file. 
         Args:
-            file (_type_): _description_
+            file (_type_): dataset row from the input dataset. 
 
         Returns:
-            _type_: _description_
+            file_labels (list): a list of all speakers in the audio file. 
         """
 
         file_labels = []
@@ -47,14 +61,14 @@ class Preprocess:
 
 
     def get_segments_in_file(self, file, labels):
-        """_summary_
+        """Get segments present in file. 
 
         Args:
             file (_type_): _description_
             labels (_type_): _description_
 
         Returns:
-            _type_: _description_
+            annotations (numpy array): _description_
         """
 
         file_annotations = []
@@ -74,15 +88,16 @@ class Preprocess:
 
 
     def get_chunk(self, file, start_time):
-        """_summary_
+        """Method used to get an audio chunk from an audio file given at start_time. 
 
         Args:
-            file (_type_): _description_
-            start_time (_type_): _description_
-            duration (_type_): _description_
+            file (dict): dataset row containing the "audio" feature. 
+            start_time (float): start time (in seconds) of the audio_chunk to extract.  
 
         Returns:
-            _type_: _description_
+            waveform (array): audio chunk
+            y (numpy array): target array. 
+            labels (list): list of speakers in chunk.   
         """
 
         sample_rate = file["audio"][0]["sampling_rate"]
@@ -132,15 +147,15 @@ class Preprocess:
 
 
     def get_start_positions(self, file, overlap, random=False):
-        """_summary_
+        """Get the start positions of the audio_chunks in the input audio file. 
 
         Args:
-            file (_type_): _description_
-            duration (_type_): _description_
-            overlap (_type_): _description_
+            file (dict): dataset row containing the "audio" feature. 
+            overlap (float, optional):  Overlap between successive start positions.
+            random (bool, optional):  Whether or not to randomly select chunks in the audio file. Defaults to False.
 
         Returns:
-            _type_: _description_
+            start_positions: Numpy array containing the start positions of the audio chunks in file. 
         """
 
         sample_rate = file["audio"][0]["sampling_rate"]
@@ -156,23 +171,21 @@ class Preprocess:
 
         return start_positions
 
-
-    def chunk_file(self, file, select_random=False, overlap=0.0):
-        """_summary_
+    def chunk_file(self, file, random=False, overlap=0.0):
+        """Chunk an audio file into short segments of duration self.chunk_duration
 
         Args:
-            file (_type_): _description_
-            duration (int, optional): _description_. Defaults to 2.
-            select_random (bool, optional): _description_. Defaults to False.
-            overlap (float, optional): _description_. Defaults to 0.0.
+            file (dict): dataset row containing the "audio" feature. 
+            random (bool, optional): Whether or not to randomly select chunks in the audio file. Defaults to False.
+            overlap (float, optional):  Overlap between successive chunks. Defaults to 0.0.
 
         Returns:
-            _type_: _description_
+            new_batch: new batch containing for each chunk the corresponding waveform, labels and number of speakers. 
         """
 
         new_batch = {"waveforms": [], "labels": [], "nb_speakers": []}
 
-        if select_random:
+        if random:
             start_positions = self.get_start_positions(file, overlap, random=True)
         else:
             start_positions = self.get_start_positions(file, overlap)
@@ -189,27 +202,26 @@ class Preprocess:
 
 
     def preprocess_dataset(self, num_proc=1):
-        """_summary_
+        """Main method to preprocess the dataset: 
 
         Args:
-            ds (_type_): _description_
-            chunk_duration (_type_): _description_
+            num_proc (int, optional): _description_. Defaults to 1.
 
         Returns:
-            _type_: _description_
+            self.processed_dataset: processed dataset
         """
 
         self.processed_dataset = DatasetDict(
             {
                 "train": Dataset.from_dict({}),
                 "validation": Dataset.from_dict({}),
-                "test": Dataset.from_dict({}),
+                # "test": Dataset.from_dict({}),
             }
         )
 
         self.processed_dataset["train"] = self.input_dataset["train"].map(
             lambda file: self.chunk_file(
-                file, select_random=False, overlap=0.5
+                file, random=False, overlap=0.5
             ),
             batched=True,
             batch_size=1,
@@ -220,7 +232,7 @@ class Preprocess:
 
         self.processed_dataset["validation"] = self.input_dataset["validation"].map(
             lambda file: self.chunk_file(
-                file, select_random=False, overlap=0.0
+                file, random=False, overlap=0.0
             ),
             batched=True,
             batch_size=1,
@@ -228,14 +240,14 @@ class Preprocess:
             num_proc=num_proc,
         )
 
-        self.processed_dataset["test"] = self.input_dataset["test"].map(
-            lambda file: self.chunk_file(
-                file, select_random=False, overlap=0.75
-            ),
-            batched=True,
-            batch_size=1,
-            remove_columns=self.input_dataset["validation"].column_names,
-            num_proc=num_proc,
-        )
+        # self.processed_dataset["test"] = self.input_dataset["test"].map(
+        #     lambda file: self.chunk_file(
+        #         file, random=False, overlap=0.75
+        #     ),
+        #     batched=True,
+        #     batch_size=1,
+        #     remove_columns=self.input_dataset["validation"].column_names,
+        #     num_proc=num_proc,
+        # )
 
         return self.processed_dataset
