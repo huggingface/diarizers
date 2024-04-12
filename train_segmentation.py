@@ -2,7 +2,7 @@ import argparse
 import os
 
 from datasets import load_dataset, DatasetDict
-from diarizers.models.segmentation.hf_model import SegmentationModel
+from diarizers.models.segmentation.model import SegmentationModel
 from diarizers.data.preprocess import Preprocess
 from transformers import Trainer, TrainingArguments
 

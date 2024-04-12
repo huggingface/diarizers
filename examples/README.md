@@ -2,9 +2,9 @@
 
 To reproduce the datasets present in the [Speaker Diarization Collection](https://huggingface.co/collections/kamilakesbi/speaker-diarization-datasets-660d2b4fff9745457c89e164), we used the following scripts: 
 
-### Download the datasets: 
+## Add Speaker Diarization datasets to the hub: 
 
-#### AMI IHM AND SDM: 
+### AMI IHM AND SDM: 
 
 ```
 git clone https://github.com/pyannote/AMI-diarization-setup.git
@@ -53,7 +53,6 @@ git clone git@hf.co:datasets/medkit/simsamu
 
 ## Push to hub! 
 
-
 ```
 python3 -m examples.datasets \
     --dataset=callhome \
@@ -61,3 +60,5 @@ python3 -m examples.datasets \
     --push_to_hub=True \
     --hub_repository=kamilakesbi/callhome \
 ```
+
+

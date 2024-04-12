@@ -173,8 +173,6 @@ class SpeakerDiarizationDataset:
                 timestamps_start.append(timestamps_start_file)
                 timestamps_end.append(timestamps_end_file)
                 speakers.append(speakers_file)
-                    
-
 
             self.spd_dataset[subset] = Dataset.from_dict({
                 "audio": self.audio_paths[subset], 

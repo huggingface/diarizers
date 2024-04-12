@@ -16,8 +16,36 @@ Features:
 
 
 
-### Synthetic datasets: 
+## Preprocess: 
 
+
+
+### Preprocess the dataset:
+
+Preprocess the dataset to use it with the hugging face `Trainer`: 
+
+```python 
+
+from datasets import load_dataset
+from diarizers.models.segmentation import SegmentationModelConfig, SegmentationModel
+from diarizers.data.preprocess import Preprocess
+
+ds = load_dataset("kamilakesbi/callhome", "jpn", num_proc=8)
+
+config = SegmentationModelConfig(
+    chunk_duration=10, 
+    max_speakers_per_frame=2, 
+    max_speakers_per_chunk=3, 
+    min_duration=None, 
+    warm_up=(0.0, 0.0),
+    weigh_by_cardinality=False
+)
+
+model = SegmentationModel(config=config)
+
+preprocessed_dataset = Preprocess(ds, model).preprocess_dataset(num_proc=8)
+preprocessed_dataset.push_to_hub("your_repository")
+```
 
 
 ## Fine-Tune: 

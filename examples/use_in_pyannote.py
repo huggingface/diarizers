@@ -1,5 +1,5 @@
 
-from diarizers.models.segmentation.hf_model import SegmentationModel
+from diarizers.models.segmentation.model import SegmentationModel
 from pyannote.audio import Inference
 from datasets import load_dataset
 import torch

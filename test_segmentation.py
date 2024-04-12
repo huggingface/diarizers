@@ -2,7 +2,7 @@ import argparse
 import os
 
 from datasets import load_dataset
-from diarizers.models.segmentation.hf_model import SegmentationModel
+from diarizers.models.segmentation.model import SegmentationModel
 from pyannote.audio import Model
 from diarizers.test import Test
 from diarizers.utils import train_val_test_split

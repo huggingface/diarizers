@@ -19,9 +19,21 @@ class SegmentationModelConfig(PretrainedConfig):
 
     def __init__(
         self,
+        chunk_duration=10,
+        max_speakers_per_frame=2,
+        max_speakers_per_chunk=3,
+        min_duration=None,
+        warm_up=(0.0, 0.0),
+        weigh_by_cardinality=False,
         **kwargs,
     ):
         super().__init__(**kwargs)
+        self.chunk_duration = chunk_duration
+        self.max_speakers_per_frame = max_speakers_per_frame
+        self.max_speakers_per_chunk = max_speakers_per_chunk
+        self.min_duration = min_duration
+        self.warm_up = warm_up
+        self.weigh_by_cardinality = weigh_by_cardinality
 
 
 class SegmentationModel(PreTrainedModel):
@@ -36,14 +48,6 @@ class SegmentationModel(PreTrainedModel):
     def __init__(
         self,
         config=SegmentationModelConfig(), 
-        hyperparameters = {
-            'chunk_duration' : 10, 
-            'max_speakers_per_frame' : 2, 
-            'max_speakers_per_chunk': 3, 
-            'min_duration' : None, 
-            'warm_up' : (0.0, 0.0), 
-            'weigh_by_cardinality': False
-        }, 
     ):
         """init method
 
@@ -79,12 +83,12 @@ class SegmentationModel(PreTrainedModel):
         super().__init__(config)
         self.model = PyanNet_nn(sincnet={"stride": 10})
 
-        self.weigh_by_cardinality = hyperparameters['weigh_by_cardinality']
-        self.max_speakers_per_frame = hyperparameters['max_speakers_per_frame']
-        self.chunk_duration = hyperparameters['chunk_duration']
-        self.min_duration = hyperparameters['min_duration']
-        self.warm_up = hyperparameters['warm_up']
-        self.max_speakers_per_chunk = hyperparameters['max_speakers_per_chunk']
+        self.weigh_by_cardinality = config.weigh_by_cardinality
+        self.max_speakers_per_frame = config.max_speakers_per_frame
+        self.chunk_duration = config.chunk_duration
+        self.min_duration = config.min_duration
+        self.warm_up = config.warm_up
+        self.max_speakers_per_chunk = config.max_speakers_per_chunk
 
         self.specifications = Specifications(
             problem=Problem.MULTI_LABEL_CLASSIFICATION
@@ -102,7 +106,7 @@ class SegmentationModel(PreTrainedModel):
         self.model.build()
         self.setup_loss_func()
 
-    def forward(self, waveforms, labels=None, nb_speakers=None):
+    def forward(self, waveforms, labels=None):
         """foward pass of the Pretrained Model.
 
         Args:
@@ -234,7 +238,6 @@ class SegmentationModel(PreTrainedModel):
 
         self.model.activation = copy.deepcopy(pretrained.activation)
         self.model.activation.load_state_dict(pretrained.activation.state_dict())
-
 
     def to_pyannote_model(self):
         """Convert the current model to a pyanote segmentation model for use in pyannote pipelines."""
