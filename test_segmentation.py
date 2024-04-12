@@ -14,7 +14,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--dataset_name", help="", default="kamilakesbi/callhome_jpn")
+    parser.add_argument("--dataset_name", help="", default="kamilakesbi/callhome")
+    parser.add_argument("--subset", help="", default="jpn")
 
     parser.add_argument("--pretrained_or_finetuned", help="", default="finetuned", choices=["finetuned", "pretrained"])
     parser.add_argument("--checkpoint_path", help="", default="checkpoints/cv_for_spd_ja_2k_rayleigh")
@@ -23,7 +24,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    dataset = load_dataset(str(args.dataset_name), num_proc=int(args.num_proc))
+    if str(args.subset): 
+        dataset = load_dataset(str(args.dataset_name), str(args.subset), num_proc=int(args.num_proc))
+    else: 
+        dataset = load_dataset(str(args.dataset_name), num_proc=int(args.num_proc))
 
     if args.do_split is True:
         dataset = train_val_test_split(dataset["data"])

@@ -15,12 +15,15 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     # dataset arguments:
-    parser.add_argument("--dataset_name", help="", default="kamilakesbi/cv_for_spd_ja_2k_rayleigh")
+    parser.add_argument("--dataset_name", help="", default="kamilakesbi/callhome")
+    parser.add_argument("--subset", help="", default="jpn")
     # Preprocess arguments:
     parser.add_argument("--already_processed", help="", default=False)
 
     # Model Arguments:
     parser.add_argument("--from_pretrained", help="", default=True)
+    parser.add_argument("--push_to_hub", help="", default=False)
+    parser.add_argument("--hub_repository", help="", default='kamilakesbi/callhome_jpn')
 
     # Training Arguments:
     parser.add_argument("--lr", help="", default=1e-3)
@@ -29,18 +32,21 @@ if __name__ == "__main__":
 
     # Test arguments:
     parser.add_argument("--do_init_eval", help="", default=True)
-    parser.add_argument("--checkpoint_path", help="", default="checkpoints/cv_for_spd_ja_2k_rayleigh")
+    parser.add_argument("--checkpoint_path", help="", default="checkpoints/callhome_jpn")
     parser.add_argument("--save_model", help="", default=True)
 
     # Train-Test split:
-    parser.add_argument("--do_split", default=False)
+    parser.add_argument("--do_split", default=True)
 
     # Hardware args:
     parser.add_argument("--num_proc", help="", default=24)
 
     args = parser.parse_args()
 
-    dataset = load_dataset(str(args.dataset_name), num_proc=int(args.num_proc))
+    if str(args.subset): 
+        dataset = load_dataset(str(args.dataset_name), str(args.subset), num_proc=int(args.num_proc))
+    else: 
+        dataset = load_dataset(str(args.dataset_name), num_proc=int(args.num_proc))
 
     if args.do_split is True:
         dataset = train_val_test_split(dataset["data"])
@@ -94,3 +100,6 @@ if __name__ == "__main__":
 
     if args.save_model is True:
         trainer.save_model(output_dir=str(args.checkpoint_path))
+
+    if args.push_to_hub: 
+        model.push_to_hub(args.hub_repository)
