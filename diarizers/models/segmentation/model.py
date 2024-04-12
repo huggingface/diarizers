@@ -27,6 +27,32 @@ class SegmentationModelConfig(PretrainedConfig):
         weigh_by_cardinality=False,
         **kwargs,
     ):
+        """Init method for the 
+        Args:
+            chunk_duration : float, optional
+                    Chunks duration processed by the model. Defaults to 10s.
+            max_speakers_per_chunk : int, optional
+                Maximum number of speakers per chunk.
+            max_speakers_per_frame : int, optional
+                Maximum number of (overlapping) speakers per frame.
+                Setting this value to 1 or more enables `powerset multi-class` training.
+                Default behavior is to use `multi-label` training.
+            weigh_by_cardinality: bool, optional               
+                Weigh each powerset classes by the size of the corresponding speaker set.
+                In other words, {0, 1} powerset class weight is 2x bigger than that of {0}
+                or {1} powerset classes. Note that empty (non-speech) powerset class is
+                assigned the same weight as mono-speaker classes. Defaults to False (i.e. use
+                same weight for every class). Has no effect with `multi-label` training.
+            min_duration : float, optional                      
+                Sample training chunks duration uniformely between `min_duration`
+                and `duration`. Defaults to `duration` (i.e. fixed length chunks).
+            warm_up : float or (float, float), optional
+                Use that many seconds on the left- and rightmost parts of each chunk
+                to warm up the model. While the model does process those left- and right-most
+                parts, only the remaining central part of each chunk is used for computing the
+                loss during training, and for aggregating scores during inference.
+                Defaults to 0. (i.e. no warm-up).
+        """
         super().__init__(**kwargs)
         self.chunk_duration = chunk_duration
         self.max_speakers_per_frame = max_speakers_per_frame
@@ -40,7 +66,7 @@ class SegmentationModel(PreTrainedModel):
     """
     Wrapper class for the PyanNet segmentation model used in pyannote.
     Inherits from Pretrained model to be compatible with the HF Trainer.
-    Can be used to train segmentation models adapted for the "SpeakerDiarisation Task" in pyannote.
+    Can be used to train segmentation models to be used for the "SpeakerDiarisation Task" in pyannote.
     """
 
     config_class = SegmentationModelConfig
@@ -50,34 +76,8 @@ class SegmentationModel(PreTrainedModel):
         config=SegmentationModelConfig(), 
     ):
         """init method
-
         Args:
-            config (_type_): instance of SegmentationModelConfig.
-            min_duration (_type_, optional): _description_. Defaults to None.
-            duration : float, optional
-                    Chunks duration processed by the model. Defaults to 10s.
-            max_speakers_per_chunk : int, optional
-                Maximum number of speakers per chunk.
-            max_speakers_per_frame : int, optional
-                Maximum number of (overlapping) speakers per frame.
-                Setting this value to 1 or more enables `powerset multi-class` training.
-                Default behavior is to use `multi-label` training.
-            weigh_by_cardinality: bool, optional                NOT IMPPLEMENTED HERE!
-                Weigh each powerset classes by the size of the corresponding speaker set.
-                In other words, {0, 1} powerset class weight is 2x bigger than that of {0}
-                or {1} powerset classes. Note that empty (non-speech) powerset class is
-                assigned the same weight as mono-speaker classes. Defaults to False (i.e. use
-                same weight for every class). Has no effect with `multi-label` training.
-
-            min_duration : float, optional                      NOT IMPLEMENTED HERE!
-                Sample training chunks duration uniformely between `min_duration`
-                and `duration`. Defaults to `duration` (i.e. fixed length chunks).
-            warm_up : float or (float, float), optional
-                Use that many seconds on the left- and rightmost parts of each chunk
-                to warm up the model. While the model does process those left- and right-most
-                parts, only the remaining central part of each chunk is used for computing the
-                loss during training, and for aggregating scores during inference.
-                Defaults to 0. (i.e. no warm-up).
+            config (SegmentationModelConfig): instance of SegmentationModelConfig.
         """
 
         super().__init__(config)
@@ -110,7 +110,7 @@ class SegmentationModel(PreTrainedModel):
         """foward pass of the Pretrained Model.
 
         Args:
-            waveforms (_type_): _description_
+            waveforms (torch.tensor): _description_
             labels (_type_, optional): _description_. Defaults to None.
             nb_speakers (_type_, optional): _description_. Defaults to None.
 
@@ -240,7 +240,7 @@ class SegmentationModel(PreTrainedModel):
         self.model.activation.load_state_dict(pretrained.activation.state_dict())
 
     def to_pyannote_model(self):
-        """Convert the current model to a pyanote segmentation model for use in pyannote pipelines."""
+        """Convert the current model to a pyannote segmentation model for use in pyannote pipelines."""
 
         seg_model = PyanNet(sincnet={"stride": 10})
         seg_model.hparams.update(self.model.hparams)

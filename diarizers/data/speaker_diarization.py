@@ -32,8 +32,8 @@ class SpeakerDiarizationDataset:
         audio_paths, 
         annotations_paths, 
         sample_rate=16000, 
-        annotations_type = 'rttm', 
-        crop_unannotated_regions = False 
+        annotations_type='rttm', 
+        crop_unannotated_regions=False 
     ):
         """
         Args:
