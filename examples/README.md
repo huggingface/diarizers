@@ -14,7 +14,8 @@ sh download_ami_sdm.sh
 Use this script to compute and push the AMI dataset to the hub: 
 
 ```
-python3 -m examples.datasets.ami \
+python3 -m examples.datasets \
+    --dataset=ami \
     --path_to_ami=/path_to_ami \
     --push_to_hub=True \
     --hub_repository=kamilakesbi/ami
@@ -33,7 +34,8 @@ Download for each langage (example here japanese):
 Use this script to compute and push the `Japanese, English, Chinese, German and Spanish Callhome` dataset to the hub: 
 
 ```
-python3 -m examples.datasets.callhome \
+python3 -m examples.datasets \
+    --dataset=callhome \
     --path_to_callhome=/home/kamil/datasets \
     --push_to_hub=True \
     --hub_repository=kamilakesbi/callhome \
@@ -49,9 +51,10 @@ https://www.robots.ox.ac.uk/~vgg/data/voxconverse/data/voxconverse_test_wav.zip
 
 
 ```
-python3 -m examples.datasets.voxconverse 
-    --path_to_voxconverse=/path_to_voxconverse
-    --push_to_hub=True 
+python3 -m examples.datasets \ 
+    --dataset=voxconverse \
+    --path_to_voxconverse=/path_to_voxconverse \
+    --push_to_hub=True \
     --hub_repository=speaker_diarization/voxconverse
 ```
 
