@@ -41,8 +41,14 @@ wget https://www.robots.ox.ac.uk/~vgg/data/voxconverse/data/voxconverse_test_wav
 unzip voxconverse_test_wav.zip
 ```
 
-## SIMSAMU: 
+#### SIMSAMU: 
 
+The Simsamu dataset is based on this [Hugging Face dataset](https://huggingface.co/datasets/medkit/simsamu): 
+
+```
+git lfs install
+git clone git@hf.co:datasets/medkit/simsamu
+```
 
 
 ## Push to hub! 
