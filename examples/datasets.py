@@ -89,11 +89,11 @@ def get_simsamu_files(path_to_simsamu):
     audio_files = glob.glob(path_to_simsamu + '/simsamu/*/*.wav')
 
     audio_files = {
-        'train':audio_files 
+        'data':audio_files 
     }
 
     rttm_files = {
-        'train':rttm_files 
+        'data':rttm_files 
     }
 
     return audio_files, rttm_files
@@ -101,13 +101,13 @@ def get_simsamu_files(path_to_simsamu):
 def get_voxconverse_files(path_to_voxconverse): 
 
     rttm_files = {
-        'dev': glob.glob(path_to_voxconverse + '/voxconverse/rttm_dev/*.rttm'),  
-        'test': glob.glob(path_to_voxconverse + '/voxconverse/rttm_test/*.rttm') 
+        'dev': glob.glob(path_to_voxconverse + '/voxconverse/dev/*.rttm'),  
+        'test': glob.glob(path_to_voxconverse + '/voxconverse/test/*.rttm') 
     }
 
     audio_files = {
-        'dev': glob.glob(path_to_voxconverse + '/voxconverse/audio_dev/*.wav'), 
-        'test': glob.glob(path_to_voxconverse + '/voxconverse/audio_test/*.wav') 
+        'dev': glob.glob(path_to_voxconverse + '/voxconverse/audio/*.wav'), 
+        'test': glob.glob(path_to_voxconverse + '/voxconverse/voxconverse_test_wav/*.wav') 
     }
 
     return audio_files, rttm_files
@@ -161,5 +161,6 @@ if __name__ == '__main__':
     if args.dataset == "voxconverse": 
         audio_files, rttm_files = get_voxconverse_files(args.path_to_dataset)
         dataset = SpeakerDiarizationDataset(audio_files, rttm_files).construct_dataset()
+        print(dataset)
         if args.push_to_hub == 'True': 
             dataset.push_to_hub(args.hub_repository)
