@@ -5,3 +5,5 @@ checkpoints/*
 
 analysis
 synthetic
+dist 
+build
