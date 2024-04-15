@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 from datasets import Dataset, DatasetDict
-
+from ..models.segmentation import SegmentationModel 
 
 class Preprocess:
     """Converts a HF dataset with the following features:
@@ -20,7 +20,7 @@ class Preprocess:
     def __init__(
         self,
         input_dataset,
-        model,
+        config,
     ):
         """Preprocess init method.
         Takes as input the dataset to process and the model to perform training with.
@@ -30,21 +30,21 @@ class Preprocess:
             model (SegmentationModel): A SegmentationModel from the diarizers library.
         """
         self.input_dataset = input_dataset
-        self.chunk_duration = model.chunk_duration
-        self.max_speakers_per_frame = model.max_speakers_per_frame
-        self.max_speakers_per_chunk = model.max_speakers_per_chunk
-        self.min_duration = model.min_duration
-        self.warm_up = model.warm_up
+        self.chunk_duration = config.chunk_duration
+        self.max_speakers_per_frame = config.max_speakers_per_frame
+        self.max_speakers_per_chunk = config.max_speakers_per_chunk
+        self.min_duration = config.min_duration
+        self.warm_up = config.warm_up
 
-        self.model = model
-        self.model = self.model.to_pyannote_model()
-
+        model = SegmentationModel(config).to_pyannote_model()
         # Get the number of frames associated to a chunk:
         self.sample_rate = input_dataset["train"][0]["audio"]["sampling_rate"]
 
-        _, self.num_frames_per_chunk, _ = self.model(
+        _, self.num_frames_per_chunk, _ = model(
             torch.rand((1, int(self.chunk_duration * self.sample_rate)))
         ).shape
+
+        print('ok')
 
     def get_labels_in_file(self, file):
         """Get speakers present in file.
