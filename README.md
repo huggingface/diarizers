@@ -4,14 +4,12 @@ Diarizers is a library for fine-tuning speaker diarisation models from `pyannote
 It provides scripts to: 
 
 - Convert Speaker Diarization datasets into Hugging Face datasets compatible with `diarizers`. 
-- Train/fine-tune speaker diarization models using the Hugging Face `Trainer`. 
-- Evaluate speaker diarization models. 
+- Train/fine-tune and evaluate speaker diarization models using the Hugging Face `Trainer`. 
 -  Convert the fine-tuned models into a format compatible with `pyannote`.  
 
-** Note:
-
-dd
-**
+> [!IMPORTANT]
+> The library can only be used to fine-tune the [segmentation model](https://huggingface.co/pyannote/segmentation-3.0) used in the `pyannote` [speaker diarization pipeline](https://huggingface.co/pyannote/speaker-diarization-3.1) here. 
+> Future work will aim to help optimise the full pipeline hyperparameters. 
 
 
 ## Datasets:
