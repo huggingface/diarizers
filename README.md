@@ -1,5 +1,18 @@
 # Diarizers
 
+Diarizers is a library for fine-tuning speaker diarisation models from `pyannote` using hugging face tools.
+It provides scripts to: 
+
+- Convert Speaker Diarization datasets into Hugging Face datasets compatible with `diarizers`. 
+- Train/fine-tune speaker diarization models using the Hugging Face `Trainer`. 
+- Evaluate speaker diarization models. 
+-  Convert the fine-tuned models into a format compatible with `pyannote`.  
+
+** Note:
+
+dd
+**
+
 
 ## Datasets:
 
@@ -67,17 +80,12 @@ git clone git@hf.co:datasets/medkit/simsamu
 #### Push to hub: 
 
 ```
-python3 -m examples.datasets \
+python3 -m spd_datasets \
     --dataset=callhome \
     --path_to_callhome=/home/kamil/datasets \
     --push_to_hub=True \
     --hub_repository=kamilakesbi/callhome \
 ```
-
-
-
-
-
 
 
 ## Preprocess the dataset:
