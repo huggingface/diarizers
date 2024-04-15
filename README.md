@@ -1,7 +1,6 @@
 # Diarizers
 
-Diarizers is a library for fine-tuning speaker diarisation models from `pyannote` using hugging face tools.
-It provides scripts to: 
+Diarizers is a library for fine-tuning speaker diarisation models from [`pyannote`](https://github.com/pyannote/pyannote-audio/tree/develop) using hugging face tools.It provides scripts to: 
 
 - Convert Speaker Diarization datasets into Hugging Face datasets compatible with `diarizers`. 
 - Train from scratch or fine-tune speaker diarization models using the Hugging Face `Trainer`. 
@@ -22,8 +21,17 @@ It provides scripts to:
 * [Citation](#citation)
 * [Contribution](#contribution)
 
+## Installation
 
-## Datasets:
+Diarizers has light-weight dependencies and can be installed in one line:
+
+```sh
+pip install git+https://github.com/huggingface/diarizers.git
+pip install diarizers[dev]
+```
+
+
+## Datasets
 
 Features: 
 

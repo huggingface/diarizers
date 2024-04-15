@@ -162,7 +162,6 @@ extras["quality"] = deps_list("black", "isort", "flake8")
 
 extras["dev"] = extras["quality"] + deps_list("transformers", "accelerate", "datasets", "pyannote.audio")
 
-
 install_requires = [
     deps["torch"],
     deps["importlib_metadata"],
@@ -172,7 +171,7 @@ install_requires = [
 
 setup(
     name="diarizers",
-    version="0.0.0",  # expected format is one of x.y.z.dev0, or x.y.z.rc1 or x.y.z (no to dashes, yes to dots)
+    version="0.1",  # expected format is one of x.y.z.dev0, or x.y.z.rc1 or x.y.z (no to dashes, yes to dots)
     description="diarizers",
     long_description=open("README.md", "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
