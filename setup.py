@@ -85,7 +85,7 @@ _deps = [
     "numpy",
     "filelock",
     "importlib_metadata",
-    "datasets>=2.7.0",
+    "datasets==2.18.0",
     "pyannote.audio",
 ]
 
