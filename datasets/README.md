@@ -19,7 +19,6 @@ General steps to add a Speaker diarization dataset with <files, annotations> to 
 ```
 
 
-
 2. Get dictionnaries with the following structure:
 
 ```
@@ -41,10 +40,10 @@ Here, each subset will correspond in a Hugging Face dataset subset.
 ```
 from diarizers import SpeakerDiarizationDataset
 
-dataset = SpeakerDiarizationDataset(audio_files, rttm_files).construct_dataset()
+dataset = SpeakerDiarizationDataset(audio_files, annotations_files).construct_dataset()
 ```
 
-Remark: For now, this module can be used on annotation files with RTTM format, but might need to be adapted for other formats. 
+Note: This module can currently be used on RTTM format annotation files, but may need to be adapted for other formats.
 
 ## Current datasets in diarizers-community
 
