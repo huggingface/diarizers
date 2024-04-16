@@ -1,6 +1,5 @@
-import argparse
 import os
-from typing import Dict, List, Optional, Union
+from typing import Optional
 from pyannote.audio import Model
 from transformers import Trainer, TrainingArguments, HfArgumentParser
 
@@ -61,7 +60,6 @@ class ModelArguments:
         metadata={"help": "Where do you want to store the pretrained models downloaded from huggingface.co"},
     )
 
-
 if __name__ == "__main__":
 
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -85,7 +83,7 @@ if __name__ == "__main__":
     )
         
     train_split_name = data_args.train_split_name
-    val_split_name = data_args.val_split_name
+    val_split_name = data_args.eval_split_name
 
     if data_args.do_split_on_subset:
         dataset = train_val_test_split(dataset[str(data_args.do_split_on_subset)])
