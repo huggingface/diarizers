@@ -15,9 +15,15 @@ config = SegmentationModelConfig(
 
 model = SegmentationModel(config=config)
 
-preprocessor = Preprocess(ds, config)
-print('ok')
+preprocessor = Preprocess(config)
 
-preprocessed_dataset = ds.map(preprocessor, num_proc = 24)
+preprocessed_dataset = ds['validation'].map(
+    lambda file: preprocessor(file, random=False, overlap=0.0), 
+    num_proc=1, 
+    remove_columns=next(iter(ds.values())).column_names,
+    keep_in_memory=True, 
+    batched=True, 
+    batch_size=1
+)
 
-print('ok')
+print(preprocessed_dataset)

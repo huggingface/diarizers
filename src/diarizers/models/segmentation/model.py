@@ -60,6 +60,8 @@ class SegmentationModelConfig(PretrainedConfig):
         self.min_duration = min_duration
         self.warm_up = warm_up
         self.weigh_by_cardinality = weigh_by_cardinality
+        # For now, the model handles only 16000 Hz sampling rate 
+        self.sample_rate = 16000
 
 
 class SegmentationModel(PreTrainedModel):
@@ -81,6 +83,7 @@ class SegmentationModel(PreTrainedModel):
         """
 
         super().__init__(config)
+
         self.model = PyanNet_nn(sincnet={"stride": 10})
 
         self.weigh_by_cardinality = config.weigh_by_cardinality
