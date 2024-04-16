@@ -41,15 +41,24 @@ hugging-cli login
 
 ```
 python3 train_segmentation.py
-    --dataset_name="kamilakesbi/real_ami_ihm" \
-    --from_pretrained=True \
-    --lr='1e-3'\
-    --batch_size='32'\
-    --epochs='3'\
-    --do_init_eval=True\
-    --checkpoint_path='checkpoints/ami'\
-    --save_model=True \
-    --num_proc='12'
+    --dataset_name=diarizers-community/callhome \
+    --dataset_config_name=jpn \ 
+    --do_split_on_subset=data \
+    --model_name_or_path=pyannote/segmentation-3.0 \
+    --output_dir=checkpoint/speaker-segmentation-fine-tuned-callhome-jpn \
+    --preprocessing_num_workers=2 \ 
+    --do_train \
+    --do_eval \ 
+    --learning_rate=1e-3 \ 
+    --num_train_epochs=1 \
+    --per_device_train_batch_size=32 \ 
+    --per_device_eval_batch_size=32 \ 
+    --evaluation_strategy=epoch \
+    --save_strategy=epoch \  
+    --dataloader_num_workers=2 \ 
+    --logging_steps=200 \
+    --load_best_model_at_end \
+    --push_to_hub
 ```
 
 ## Test: 
