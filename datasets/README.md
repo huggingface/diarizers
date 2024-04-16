@@ -1,7 +1,50 @@
-### Add a speaker diarization dataset to the Hub: 
+# Speaker diarization datasets
 
-To reproduce the datasets present in the [Speaker Diarization Collection](https://huggingface.co/collections/kamilakesbi/speaker-diarization-datasets-660d2b4fff9745457c89e164), we used the following scripts: 
+## Add any speaker diarization dataset to the hub
 
+General steps to add a Speaker diarization dataset with <files, annotations> to the hub:  
+
+1. Prepare a folder containing audios and annotations files , which should be organised like this: 
+
+    dataset_folder
+    ├── audio                   
+    │   ├── file_1.mp3          
+    │   ├── file_2.mp3          
+    │   └── file_3.mp3                 
+    ├── annotations          
+    │   ├── file_1.rttm          
+    │   ├── file_2.rttm          
+    │   └── file_3.rttm    
+
+2. Get dictionnaries with the following structure:
+
+```
+annotations_files = {
+    "subset1": [list of annotations_files in subset1],
+    "subset2":  [list of annotations_files in subset2],
+}
+
+audio_files = {
+    "subset1": [list of annotations_files in subset1],
+    "subset2":  [list of annotations_files in subset2],   
+}
+```
+
+Here, each subset will correspond in a Hugging Face dataset subset. 
+
+3. Use SpeakerDiarization module from `diarizers` to obtain your hugging face dataset: 
+
+```
+from diarizers import SpeakerDiarizationDataset
+
+dataset = SpeakerDiarizationDataset(audio_files, rttm_files).construct_dataset()
+```
+
+Remark: For now, this module can be used on annotation files with RTTM format, but might need to be adapted for other formats. 
+
+## Current datasets in diarizers-community
+
+We explain the scripts we used to add the various datasets present in the [diarizers-community](https://huggingface.co/diarizers-community): 
 
 #### AMI IHM AND SDM: 
 
@@ -49,14 +92,15 @@ git lfs install
 git clone git@hf.co:datasets/medkit/simsamu
 ```
 
-
 #### Push to hub: 
+
+We pushed each of these datasets using a `spd_datasets.py` and the following script: 
 
 ```
 python3 -m spd_datasets \
     --dataset=callhome \
-    --path_to_callhome=/home/kamil/datasets \
+    --path_to_callhome=/path_to_callhome \
     --push_to_hub=True \
-    --hub_repository=kamilakesbi/callhome \
+    --hub_repository=diarizers-community/callhome \
 ```
 
