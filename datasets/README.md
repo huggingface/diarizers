@@ -6,6 +6,7 @@ General steps to add a Speaker diarization dataset with <files, annotations> to 
 
 1. Prepare a folder containing audios and annotations files , which should be organised like this: 
 
+```
     dataset_folder
     ├── audio                   
     │   ├── file_1.mp3          
@@ -15,6 +16,9 @@ General steps to add a Speaker diarization dataset with <files, annotations> to 
     │   ├── file_1.rttm          
     │   ├── file_2.rttm          
     │   └── file_3.rttm    
+```
+
+
 
 2. Get dictionnaries with the following structure:
 
