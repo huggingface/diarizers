@@ -13,7 +13,7 @@ Diarizers is a library for fine-tuning speaker diarisation models from [`pyannot
 
 ## 📖 Quick Index
 * [Installation](#installation)
-* [Training](#training)
+* [Train](#train)
 * [Inference](#inference)
 * [Results](#Results)
 * [Adding new datasets](#datasets)
@@ -33,10 +33,11 @@ pip install diarizers[dev]
 You'll need to generate a [user access token](https://huggingface.co/docs/hub/en/security-tokens), and login using: 
 
 ```
+pip install -U "huggingface_hub[cli]"
 hugging-cli login
 ```
 
-## Fine-Tune: 
+## Train
 
 When fine-tunning a `pyannote` segmentation model on a given dataset, make sure to specify: 
 
@@ -55,7 +56,7 @@ python3 train_segmentation.py
     --dataset_config_name=jpn \ 
     --do_split_on_subset=data \
     --model_name_or_path=pyannote/segmentation-3.0 \
-    --output_dir=checkpoint/speaker-segmentation-fine-tuned-callhome-jpn \
+    --output_dir=diarizers-community/speaker-segmentation-fine-tuned-callhome-jpn \
     --preprocessing_num_workers=2 \ 
     --do_train \
     --do_eval \ 
@@ -71,18 +72,22 @@ python3 train_segmentation.py
     --push_to_hub
 ```
 
-## Test: 
+## Inference
+
+Evaluate your model at inference time
 
 ```
 python3 test_segmentation.py \
-   --dataset_name="kamilakesbi/real_ami_ihm" \
-   --pretrained_or_finetuned='finetuned' \
-   --checkpoint_path='checkpoints/ami'
+      --dataset_name=diarizers-community/callhome" \
+      --model_name_or_path=diarizers-community/speaker-segmentation-fine-tuned-callhome-jpn" \
+      --dataset_config_name=jpn" \ 
+      --do_split_on_subset=data" \ 
+      --preprocessing_num_workers=2  
 ```
 
-## Use in pyannote: 
+## Use in pyannote
 
-- Use the fine-tuned segmentation model within a speaker diarization pipeline: 
+Use the fine-tuned segmentation model within a speaker diarization pipeline: 
 
 ```python
 from diarizers import SegmentationModel
@@ -104,18 +109,27 @@ with open("audio.rttm", "w") as rttm:
     diarization.write_rttm(rttm)
 ```
 
-## Datasets
+## Results
 
-Features: 
 
-- `audio`:
-- `timestamps_start`:
-- `timestamps_end`:
-- `speakers`:
+## Adding new datasets
 
+The datasets added to the [diarizers-community](https://huggingface.co/diarizers-community) where all processed using the script in `datasets/spd_datasets.py`. 
+The idea is to convert any raw speaker diarization dataset containing <audio, RTTM file> pairs into a hugging face dataset.  
+
+In order to be compatible with our training script, the hugging face dataset should contain the following features: 
+
+- `audio`: Audio feature.
+- `speakers`: The list of audio speakers, with their order of appearance.
+- `timestamps_start`: A list of timestamps indicating the start of each speaker segment.
+- `timestamps_end`: A list of timestamps indicating the end of each speaker segment.
+
+See [Adding a dataset](datasets/README.md) for more details on how to add speaker diarization datasets to the hub. 
 
 ## Acknowledgements
 
+This library builds on top of `pyannote` library as well as several hugging face libraries (`transformers`, `datasets`, `accelerate`). 
+We would like to extend our warmest thanks to their developpers!
 
 
 ## Citation
@@ -141,5 +155,3 @@ If you found this repository useful, please consider citing this work and also t
   booktitle={Proc. INTERSPEECH 2023},
 }
 ```
-
-## Contribution
