@@ -30,6 +30,12 @@ pip install git+https://github.com/huggingface/diarizers.git
 pip install diarizers[dev]
 ```
 
+You'll need to generate a [user access token](https://huggingface.co/docs/hub/en/security-tokens), and login using: 
+
+```
+hugging-cli login
+```
+
 
 ## Fine-Tune: 
 

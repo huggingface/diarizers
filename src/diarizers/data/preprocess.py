@@ -4,7 +4,6 @@ import math
 import numpy as np
 import torch
 
-from datasets import Dataset, DatasetDict
 from ..models.segmentation import SegmentationModel 
 
 class Preprocess:
@@ -189,78 +188,3 @@ class Preprocess:
             new_batch["nb_speakers"].append(label)
 
         return new_batch
-
-    # def chunk_file(self, file, random=False, overlap=0.0):
-    #     """Chunk an audio file into short segments of duration self.chunk_duration
-
-    #     Args:
-    #         file (dict): dataset row containing the "audio" feature.
-    #         random (bool, optional): Whether or not to randomly select chunks in the audio file. Defaults to False.
-    #         overlap (float, optional):  Overlap between successive chunks. Defaults to 0.0.
-
-    #     Returns:
-    #         new_batch: new batch containing for each chunk the corresponding waveform, labels and number of speakers.
-    #     """
-    
-    #     new_batch = {"waveforms": [], "labels": [], "nb_speakers": []}
-
-    #     if random:
-    #         start_positions = self.get_start_positions(file, overlap, random=True)
-    #     else:
-    #         start_positions = self.get_start_positions(file, overlap)
-
-    #     for start_time in start_positions:
-    #         waveform, target, label = self.get_chunk(file, start_time)
-
-    #         new_batch["waveforms"].append(waveform)
-    #         new_batch["labels"].append(target)
-    #         new_batch["nb_speakers"].append(label)
-
-    #     return new_batch
-
-    # def preprocess_dataset(self, num_proc=1):
-    #     """Main method to preprocess the dataset:
-
-    #     Args:
-    #         num_proc (int, optional): _description_. Defaults to 1.
-
-    #     Returns:
-    #         self.processed_dataset: processed dataset
-    #     """
-
-    #     self.processed_dataset = DatasetDict(
-    #         {
-    #             "train": Dataset.from_dict({}),
-    #             "validation": Dataset.from_dict({}),
-    #             # "test": Dataset.from_dict({}),
-    #         }
-    #     )
-
-    #     self.processed_dataset["train"] = self.input_dataset["train"].map(
-    #         lambda file: self.chunk_file(file, random=False, overlap=0.5),
-    #         batched=True,
-    #         batch_size=1,
-    #         remove_columns=self.input_dataset["train"].column_names,
-    #         num_proc=num_proc,
-    #     )
-    #     self.processed_dataset["train"] = self.processed_dataset["train"].shuffle(seed=42)
-
-    #     self.processed_dataset["validation"] = self.input_dataset["validation"].map(
-    #         lambda file: self.chunk_file(file, random=False, overlap=0.0),
-    #         batched=True,
-    #         batch_size=1,
-    #         remove_columns=self.input_dataset["validation"].column_names,
-    #         num_proc=num_proc,
-    #     )
-
-    #     # self.processed_dataset["test"] = self.input_dataset["test"].map(
-    #     #     lambda file: self.chunk_file(
-    #     #         file, random=False, overlap=0.75
-    #     #     ),
-    #     #     batched=True,
-    #     #     batch_size=1,
-    #     #     remove_columns=self.input_dataset["validation"].column_names,
-    #     #     num_proc=num_proc,
-    #     # )
-
-    #     return self.processed_dataset

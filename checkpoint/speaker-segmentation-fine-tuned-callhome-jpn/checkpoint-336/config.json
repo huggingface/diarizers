@@ -1,0 +1,18 @@
+{
+  "architectures": [
+    "SegmentationModel"
+  ],
+  "chunk_duration": 10,
+  "max_speakers_per_chunk": 3,
+  "max_speakers_per_frame": 2,
+  "min_duration": null,
+  "model_type": "pyannet",
+  "sample_rate": 16000,
+  "torch_dtype": "float32",
+  "transformers_version": "4.39.3",
+  "warm_up": [
+    0.0,
+    0.0
+  ],
+  "weigh_by_cardinality": false
+}

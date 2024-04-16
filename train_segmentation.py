@@ -1,106 +1,151 @@
 import argparse
 import os
-
+from typing import Dict, List, Optional, Union
 from pyannote.audio import Model
-from transformers import Trainer, TrainingArguments
+from transformers import Trainer, TrainingArguments, HfArgumentParser
 
 from datasets import load_dataset
 from src.diarizers.data import Preprocess
 from src.diarizers.models.segmentation import SegmentationModel
 from src.diarizers.utils import DataCollator, Metrics, train_val_test_split
+from dataclasses import dataclass, field
+
+@dataclass
+class DataTrainingArguments:
+    """
+    Arguments pertaining to what data we are going to input our model for training and eval.
+
+    Using `HfArgumentParser` we can turn this class
+    into argparse arguments to be able to specify them on
+    the command line.
+    """
+
+    dataset_name: str = field(
+        default=None, 
+        metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
+    )
+    dataset_config_name: str = field(
+        default=None, metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
+    )
+
+    train_split_name: str = field(
+        default=None, metadata={"help": "The name of the training data set split to use (via the datasets library). Defaults to None"}
+    )
+
+    eval_split_name: str = field(
+        default=None, metadata={"help": "The name of the training data set split to use (via the datasets library). Defaults to None"}
+    )
+    
+    do_split_on_subset: str = field(
+        default=None,
+        metadata={"help": "Automatically splits the dataset into train-val-set on a specified subset. Defaults to 'None'"},
+    )
+
+    preprocessing_num_workers: Optional[int] = field(
+        default=None,
+        metadata={"help": "The number of processes to use for the preprocessing."},
+    )
+
+@dataclass
+class ModelArguments:
+    """
+    Arguments pertaining to which model/config/tokenizer we are going to fine-tune from.
+    """
+
+    model_name_or_path: str = field(
+        metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models"}
+    )
+
+    cache_dir: Optional[str] = field(
+        default=None,
+        metadata={"help": "Where do you want to store the pretrained models downloaded from huggingface.co"},
+    )
 
 
 if __name__ == "__main__":
 
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
-    parser = argparse.ArgumentParser()
-    # dataset arguments:
-    parser.add_argument("--dataset_name", help="", default="kamilakesbi/callhome")
-    parser.add_argument("--subset", help="", default="eng")
-    # Preprocess arguments:
-    parser.add_argument("--already_processed", help="", default=False)
+    parser = HfArgumentParser((DataTrainingArguments, ModelArguments, TrainingArguments))
 
-    # Model Arguments:
-    parser.add_argument("--from_pretrained", help="", default=True)
-    parser.add_argument("--push_to_hub", help="", default=True)
-    parser.add_argument("--hub_repository", help="", default='kamilakesbi/callhome_eng')
+    data_args, model_args, training_args = parser.parse_args_into_dataclasses()
 
-    # Training Arguments:
-    parser.add_argument("--lr", help="", default=1e-3)
-    parser.add_argument("--batch_size", help="", default=32)
-    parser.add_argument("--epochs", help="", default=1)
-
-    # Test arguments:
-    parser.add_argument("--do_init_eval", help="", default=True)
-    parser.add_argument("--checkpoint_path", help="", default="checkpoints/callhome_eng")
-    parser.add_argument("--save_model", help="", default=True)
-
-    # Train-Test split:
-    parser.add_argument("--do_split", default=True)
-
-    # Hardware args:
-    parser.add_argument("--num_proc", help="", default=24)
-
-    args = parser.parse_args()
-
-    if str(args.subset): 
-        dataset = load_dataset(str(args.dataset_name), str(args.subset), num_proc=int(args.num_proc))
+    # Load the dataset: 
+    if str(data_args.dataset_config_name): 
+        dataset = load_dataset(
+            str(data_args.dataset_name), 
+            str(data_args.dataset_config_name), 
+            num_proc=int(data_args.preprocessing_num_workers)
+        )
     else: 
-        dataset = load_dataset(str(args.dataset_name), num_proc=int(args.num_proc))
-
-    if args.do_split is True:
-        dataset = train_val_test_split(dataset["data"])
-
-    model = SegmentationModel()
-
-    if args.from_pretrained is True:
-        pretrained = Model.from_pretrained("pyannote/segmentation-3.0", use_auth_token=True)
-        model.from_pyannote_model(pretrained)
-
-    if args.already_processed is True:
-        preprocessed_dataset = dataset
-    else:
-        preprocessed_dataset = Preprocess(dataset, model).preprocess_dataset(num_proc=int(args.num_proc))
-
-    train_dataset = preprocessed_dataset["train"].with_format("torch")
-    eval_dataset = preprocessed_dataset["validation"].with_format("torch")
-
-    metrics = Metrics(model.specifications)
-
-    training_args = TrainingArguments(
-        output_dir=str(args.checkpoint_path),
-        evaluation_strategy="epoch",
-        save_strategy="epoch",
-        learning_rate=float(args.lr),
-        per_device_train_batch_size=int(args.batch_size),
-        gradient_accumulation_steps=1,
-        per_device_eval_batch_size=32,
-        dataloader_num_workers=int(args.num_proc),
-        num_train_epochs=int(args.epochs),
-        logging_steps=200,
-        load_best_model_at_end=True,
-        push_to_hub=False,
-        save_safetensors=False,
-        seed=42,
+        dataset = load_dataset(
+            str(data_args.dataset_name), 
+            str(data_args.dataset_config_name), 
+            num_proc=int(data_args.preprocessing_num_workers)
     )
+
+    if data_args.do_split_on_subset:
+        dataset = train_val_test_split(dataset[str(data_args.do_split_on_subset)])
+
+    pretrained = Model.from_pretrained(
+        model_args.model_name_or_path,
+        cache_dir=model_args.cache_dir,  
+        use_auth_token=True
+    )
+    model = SegmentationModel()
+    model.from_pyannote_model(pretrained)
+
+    preprocessor = Preprocess(model.config)
+
+    if training_args.do_train:
+        train_set = dataset['train'].map(
+            lambda file: preprocessor(file, random=False, overlap=0.5), 
+            num_proc=data_args.preprocessing_num_workers, 
+            remove_columns=next(iter(dataset.values())).column_names,
+            batched=True, 
+            batch_size=1
+        ).with_format("torch")
+
+    if training_args.do_eval: 
+        val_set = dataset['validation'].map(
+            lambda file: preprocessor(file, random=False, overlap=0.0), 
+            num_proc=data_args.preprocessing_num_workers, 
+            remove_columns=next(iter(dataset.values())).column_names,
+            batched=True, 
+            keep_in_memory=True, 
+            batch_size=1
+        ).with_format('torch')
+
+    # Load metrics:
+    metrics = Metrics(model.specifications)
 
     trainer = Trainer(
         model=model,
         args=training_args,
-        train_dataset=train_dataset,
-        data_collator=DataCollator(max_speakers_per_chunk=3),
-        eval_dataset=eval_dataset,
+        train_dataset=train_set,
+        data_collator=DataCollator(max_speakers_per_chunk=model.config.max_speakers_per_chunk),
+        eval_dataset=val_set,
         compute_metrics=metrics.der_metric,
     )
 
-    if args.do_init_eval is True:
+    if training_args.do_eval:
         first_eval = trainer.evaluate()
         print("Initial metric values: ", first_eval)
-    trainer.train()
+    if training_args.do_train:
+        trainer.train()
 
-    if args.save_model is True:
-        trainer.save_model(output_dir=str(args.checkpoint_path))
+    # 14. Write Training Stats
+    kwargs = {"finetuned_from": model_args.model_name_or_path, "tasks": "speaker diarization"}
+    if data_args.dataset_name is not None:
+        kwargs["dataset_tags"] = data_args.dataset_name
+        if data_args.dataset_config_name is not None:
+            kwargs["dataset_args"] = data_args.dataset_config_name
+            kwargs["dataset"] = f"{data_args.dataset_name} {data_args.dataset_config_name}"
+        else:
+            kwargs["dataset"] = data_args.dataset_name
 
-    if args.push_to_hub: 
-        model.push_to_hub(args.hub_repository)
+    if training_args.push_to_hub:
+        trainer.push_to_hub(**kwargs)
+
+    else:
+        trainer.create_model_card(**kwargs)
