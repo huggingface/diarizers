@@ -16,7 +16,7 @@ Diarizers is a library for fine-tuning [`pyannote`](https://github.com/pyannote/
 * [Train](#train)
 * [Inference](#inference)
 * [Results](#Results)
-* [Adding new datasets](#adding new datasets)
+* [Adding new datasets](#addingnewdatasets)
 * [Acknowledgements](#acknowledgements)
 * [Citation](#citation)
 
@@ -112,7 +112,6 @@ with open("audio.rttm", "w") as rttm:
 
 
 ## Adding new datasets
-
 
 In order to be compatible with our training script, the hugging face dataset should contain the following features: 
 

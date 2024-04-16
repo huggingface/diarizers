@@ -11,6 +11,6 @@ deps = {
     "numpy": "numpy",
     "filelock": "filelock",
     "importlib_metadata": "importlib_metadata",
-    "datasets": "datasets>=2.7.0",
+    "datasets": "datasets",
     "pyannote.audio": "pyannote.audio",
 }

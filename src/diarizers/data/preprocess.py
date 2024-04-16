@@ -4,7 +4,8 @@ import math
 import numpy as np
 import torch
 
-from ..models.segmentation import SegmentationModel 
+from ..models.segmentation import SegmentationModel
+
 
 class Preprocess:
     """Converts a HF dataset with the following features:
@@ -37,9 +38,7 @@ class Preprocess:
         model = SegmentationModel(config).to_pyannote_model()
 
         # Get the number of frames associated to a chunk:
-        _, self.num_frames_per_chunk, _ = model(
-            torch.rand((1, int(self.chunk_duration * self.sample_rate)))
-        ).shape
+        _, self.num_frames_per_chunk, _ = model(torch.rand((1, int(self.chunk_duration * self.sample_rate)))).shape
 
     def get_labels_in_file(self, file):
         """Get speakers present in file.
