@@ -10,15 +10,15 @@ from src.diarizers.utils import train_val_test_split
 
 if __name__ == "__main__":
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--dataset_name", help="", default="kamilakesbi/callhome")
     parser.add_argument("--subset", help="", default="jpn")
 
-    parser.add_argument("--pretrained_or_finetuned", help="", default="finetuned", choices=["finetuned", "pretrained"])
-    parser.add_argument("--checkpoint_path", help="", default="checkpoints/cv_for_spd_ja_2k_rayleigh")
+    parser.add_argument("--pretrained_or_finetuned", help="", default="pretrained", choices=["finetuned", "pretrained"])
+    parser.add_argument("--checkpoint_path", help="", default="checkpoints/callhome_jpn")
     parser.add_argument("--num_proc", help="", default=12)
     parser.add_argument("--do_split", help="", default=True)
 

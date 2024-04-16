@@ -13,9 +13,10 @@ Diarizers is a library for fine-tuning speaker diarisation models from [`pyannot
 
 ## 📖 Quick Index
 * [Installation](#installation)
-* [Adding new datasets](#datasets)
 * [Training](#training)
 * [Inference](#inference)
+* [Results](#Results)
+* [Adding new datasets](#datasets)
 * [Acknowledgements](#acknowledgements)
 * [Citation](#citation)
 * [Contribution](#contribution)
@@ -28,17 +29,6 @@ Diarizers has light-weight dependencies and can be installed with the following 
 pip install git+https://github.com/huggingface/diarizers.git
 pip install diarizers[dev]
 ```
-
-## Datasets
-
-Features: 
-
-
-- `audio`:
-- `timestamps_start`:
-- `timestamps_end`:
-- `speakers`:
-
 
 
 ## Fine-Tune: 
@@ -65,50 +55,39 @@ python3 test_segmentation.py \
    --checkpoint_path='checkpoints/ami'
 ```
 
-
 ## Use in pyannote: 
 
-- Use the fine-tuned segmentation model for inference: 
+- Use the fine-tuned segmentation model within a speaker diarization pipeline: 
 
 ```python
-from diarizers.models.segmentation.hf_model import SegmentationModel
-from pyannote.audio import Inference
-
-input_audio = {'waveform': waveform, 'sample_rate': sample_rate}
-
-model = SegmentationModel().from_pretrained('checkpoints/ami')
-model = model.to_pyannote_model()
-
-# Inference result: 
-segmentation_output = Inference(model, step=2.5)(input_audio)
-```
-
-- Use the fine-tuned segmentation model in a speaker diarization pipeline: 
-
-
-```python
-
-from diarizers.models.segmentation.hf_model import SegmentationModel
+from diarizers import SegmentationModel
 from pyannote.audio import Pipeline
 
-input_audio = {'waveform': waveform, 'sample_rate': sample_rate}
+# load the pre-trained pyannote pipeline
+pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1")
 
-pipeline = Pipeline.from_pretrained(
-            "pyannote/speaker-diarization-3.1",
-        )
-
-# replace the segmentation model with yours: 
-model = SegmentationModel().from_pretrained('checkpoints/ami')
+# replace the segmentation model with your fine-tuned one
+model = SegmentationModel().from_pretrained("diarizers-community/speaker-segmentation-fine-tuned-callhome-jpn")
 model = model.to_pyannote_model()
 pipeline.segmentation_model = model
 
-
-diarization_output = pipeline(input_audio)
+# perform inference
+diarization_output = pipeline("audio.mp3")
 
 # dump the diarization output to disk using RTTM format
 with open("audio.rttm", "w") as rttm:
     diarization.write_rttm(rttm)
 ```
+
+## Datasets
+
+Features: 
+
+- `audio`:
+- `timestamps_start`:
+- `timestamps_end`:
+- `speakers`:
+
 
 ## Acknowledgements
 

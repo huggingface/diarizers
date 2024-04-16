@@ -166,7 +166,7 @@ class Preprocess:
 
         return start_positions
 
-    def chunk_file(self, file, random=False, overlap=0.0):
+    def __call__(self, file, random=False, overlap=0.0):
         """Chunk an audio file into short segments of duration self.chunk_duration
 
         Args:
@@ -178,6 +178,34 @@ class Preprocess:
             new_batch: new batch containing for each chunk the corresponding waveform, labels and number of speakers.
         """
 
+        new_batch = {"waveforms": [], "labels": [], "nb_speakers": []}
+
+        if random:
+            start_positions = self.get_start_positions(file, overlap, random=True)
+        else:
+            start_positions = self.get_start_positions(file, overlap)
+
+        for start_time in start_positions:
+            waveform, target, label = self.get_chunk(file, start_time)
+
+            new_batch["waveforms"].append(waveform)
+            new_batch["labels"].append(target)
+            new_batch["nb_speakers"].append(label)
+
+        return new_batch
+
+    def chunk_file(self, file, random=False, overlap=0.0):
+        """Chunk an audio file into short segments of duration self.chunk_duration
+
+        Args:
+            file (dict): dataset row containing the "audio" feature.
+            random (bool, optional): Whether or not to randomly select chunks in the audio file. Defaults to False.
+            overlap (float, optional):  Overlap between successive chunks. Defaults to 0.0.
+
+        Returns:
+            new_batch: new batch containing for each chunk the corresponding waveform, labels and number of speakers.
+        """
+    
         new_batch = {"waveforms": [], "labels": [], "nb_speakers": []}
 
         if random:

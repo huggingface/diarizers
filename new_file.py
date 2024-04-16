@@ -1,53 +1,93 @@
 import argparse
 import os
-
+from typing import Dict, List, Optional, Union
 from pyannote.audio import Model
-from transformers import Trainer, TrainingArguments
+from transformers import Trainer, TrainingArguments, HfArgumentParser
 
 from datasets import load_dataset
 from src.diarizers.data import Preprocess
 from src.diarizers.models.segmentation import SegmentationModel
 from src.diarizers.utils import DataCollator, Metrics, train_val_test_split
+from dataclasses import dataclass, field
+
+# @dataclass
+# class ModelArguments:
+#     """
+#     Arguments pertaining to which model/config/tokenizer we are going to fine-tune from.
+#     """
+
+#     model_name_or_path: str = field(
+#         metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models"}
+#     )
+#     cache_dir: Optional[str] = field(
+#         default=None,
+#         metadata={"help": "Where do you want to store the pretrained models downloaded from huggingface.co"},
+#     )
+
+
+# @dataclass
+# class DataTrainingArguments:
+#     """
+#     Arguments pertaining to what data we are going to input our model for training and eval.
+
+#     Using `HfArgumentParser` we can turn this class
+#     into argparse arguments to be able to specify them on
+#     the command line.
+#     """
+
+#     dataset_name: str = field(
+#         default='kamilakesbi.callhome'
+#         metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
+#     )
+#     dataset_config_name: str = field(
+#         default=None, metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
+#     )
+#     train_split_name: str = field(
+#         default="train+validation",
+#         metadata={
+#             "help": (
+#                 "The name of the training data set split to use (via the datasets library). Defaults to "
+#                 "'train+validation'"
+#             )
+#         },
+#     )
 
 
 if __name__ == "__main__":
 
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
+    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
+
+
     parser = argparse.ArgumentParser()
     # dataset arguments:
-    parser.add_argument("--dataset_name", help="", default="kamilakesbi/callhome")
-    parser.add_argument("--subset", help="", default="eng")
+    parser.add_argument("--dataset_name", help="", default="kamilakesbi/cv_for_spd_ja_2k_rayleigh")
     # Preprocess arguments:
     parser.add_argument("--already_processed", help="", default=False)
 
     # Model Arguments:
     parser.add_argument("--from_pretrained", help="", default=True)
-    parser.add_argument("--push_to_hub", help="", default=True)
-    parser.add_argument("--hub_repository", help="", default='kamilakesbi/callhome_eng')
 
     # Training Arguments:
     parser.add_argument("--lr", help="", default=1e-3)
     parser.add_argument("--batch_size", help="", default=32)
-    parser.add_argument("--epochs", help="", default=1)
+    parser.add_argument("--epochs", help="", default=3)
 
     # Test arguments:
     parser.add_argument("--do_init_eval", help="", default=True)
-    parser.add_argument("--checkpoint_path", help="", default="checkpoints/callhome_eng")
+    parser.add_argument("--checkpoint_path", help="", default="checkpoints/cv_for_spd_ja_2k_rayleigh")
     parser.add_argument("--save_model", help="", default=True)
 
     # Train-Test split:
-    parser.add_argument("--do_split", default=True)
+    parser.add_argument("--do_split", default=False)
 
     # Hardware args:
     parser.add_argument("--num_proc", help="", default=24)
 
     args = parser.parse_args()
 
-    if str(args.subset): 
-        dataset = load_dataset(str(args.dataset_name), str(args.subset), num_proc=int(args.num_proc))
-    else: 
-        dataset = load_dataset(str(args.dataset_name), num_proc=int(args.num_proc))
+    dataset = load_dataset(str(args.dataset_name), num_proc=int(args.num_proc))
 
     if args.do_split is True:
         dataset = train_val_test_split(dataset["data"])
@@ -101,6 +141,3 @@ if __name__ == "__main__":
 
     if args.save_model is True:
         trainer.save_model(output_dir=str(args.checkpoint_path))
-
-    if args.push_to_hub: 
-        model.push_to_hub(args.hub_repository)
