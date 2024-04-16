@@ -36,8 +36,18 @@ You'll need to generate a [user access token](https://huggingface.co/docs/hub/en
 hugging-cli login
 ```
 
-
 ## Fine-Tune: 
+
+When fine-tunning a `pyannote` segmentation model on a given dataset, make sure to specify: 
+
+- `dataset_name`: Specify a dataset from the Hub on which to fine-tune your model.  
+- `dataset_config_name`:  If the dataset contains multiple language subsets, select the language ID of the subset you want to train on.
+- `train_split_name`: Specify which dataset split is to be used for training. Default is 'train'. 
+- `eval_split_name`: Specify which dataset split is to be used for validation. Default is 'validation'. 
+
+If the data set doesn't already contain a train and a validation split, you can automatically split it into train-val-test (90-10-10) using: 
+
+- `do_split_on_subset`: Specify the subset of the dataset you want to split into train-val-set.
 
 ```
 python3 train_segmentation.py
