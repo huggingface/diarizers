@@ -8,9 +8,8 @@ from src.diarizers.models.segmentation.model import SegmentationModel
 from src.diarizers.test import Test
 from src.diarizers.utils import train_val_test_split
 
-if __name__ == "__main__":
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+def args(): 
 
     parser = argparse.ArgumentParser()
 
@@ -23,6 +22,13 @@ if __name__ == "__main__":
     parser.add_argument("--do_split", help="", default=True)
 
     args = parser.parse_args()
+
+    return args
+
+
+if __name__ == "__main__":
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
     if str(args.subset): 
         dataset = load_dataset(str(args.dataset_name), str(args.subset), num_proc=int(args.num_proc))

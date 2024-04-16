@@ -29,11 +29,11 @@ class DataTrainingArguments:
     )
 
     train_split_name: str = field(
-        default=None, metadata={"help": "The name of the training data set split to use (via the datasets library). Defaults to None"}
+        default="train", metadata={"help": "The name of the training data set split to use (via the datasets library). Defaults to 'train'"}
     )
 
     eval_split_name: str = field(
-        default=None, metadata={"help": "The name of the training data set split to use (via the datasets library). Defaults to None"}
+        default="val", metadata={"help": "The name of the training data set split to use (via the datasets library). Defaults to 'val'"}
     )
     
     do_split_on_subset: str = field(
@@ -83,9 +83,14 @@ if __name__ == "__main__":
             str(data_args.dataset_config_name), 
             num_proc=int(data_args.preprocessing_num_workers)
     )
+        
+    train_split_name = data_args.train_split_name
+    val_split_name = data_args.val_split_name
 
     if data_args.do_split_on_subset:
         dataset = train_val_test_split(dataset[str(data_args.do_split_on_subset)])
+        train_split_name = 'train'
+        val_split_name = 'val'
 
     pretrained = Model.from_pretrained(
         model_args.model_name_or_path,
