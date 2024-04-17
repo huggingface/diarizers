@@ -5,7 +5,7 @@ from transformers import Trainer, TrainingArguments, HfArgumentParser
 
 from datasets import load_dataset
 from src.diarizers.data import Preprocess
-from src.diarizers.models.segmentation import SegmentationModel
+from diarizers.models import SegmentationModel
 from src.diarizers.utils import DataCollator, Metrics, train_val_test_split
 from dataclasses import dataclass, field
 

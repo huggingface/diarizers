@@ -9,7 +9,7 @@ from pyannote.audio.utils.permutation import permutate
 from pyannote.audio.utils.powerset import Powerset
 from transformers import PretrainedConfig, PreTrainedModel
 
-from diarizers.models.segmentation.pyannet import PyanNet_nn
+from diarizers.models.pyannet import PyanNet_nn
 
 
 class SegmentationModelConfig(PretrainedConfig):

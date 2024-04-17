@@ -4,7 +4,7 @@ import math
 import numpy as np
 import torch
 
-from ..models.segmentation import SegmentationModel
+from ..models import SegmentationModel
 
 
 class Preprocess:
