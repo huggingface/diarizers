@@ -85,7 +85,7 @@ _deps = [
     "numpy",
     "filelock",
     "importlib_metadata",
-    "datasets",
+    "datasets[audio]>=2.11.0",
     "pyannote.audio",
 ]
 
@@ -160,13 +160,17 @@ extras = {}
 extras["quality"] = deps_list("black", "isort", "flake8")
 
 
-extras["dev"] = extras["quality"] + deps_list("transformers", "accelerate", "datasets", "pyannote.audio")
+extras["dev"] = extras["quality"] + deps_list("transformers", "accelerate", "datasets[audio]", "pyannote.audio")
 
 install_requires = [
     deps["torch"],
     deps["importlib_metadata"],
     deps["filelock"],
     deps["numpy"],
+    deps["transformers"],
+    deps["accelerate"],
+    deps["datasets[audio]"],
+    deps["pyannote.audio"],
 ]
 
 setup(
