@@ -35,7 +35,7 @@ audio_files = {
 
 Here, each subset will correspond in a Hugging Face dataset subset. 
 
-3. Use SpeakerDiarization module from `diarizers` to obtain your hugging face dataset: 
+3. Use SpeakerDiarization module from `diarizers` to obtain your Hugging Face dataset: 
 
 ```
 from diarizers import SpeakerDiarizationDataset
