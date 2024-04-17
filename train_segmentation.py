@@ -33,7 +33,7 @@ class DataTrainingArguments:
         default="val", metadata={"help": "The name of the training data set split to use (via the datasets library). Defaults to 'val'"}
     )
     
-    do_split_on_subset: str = field(
+    split_on_subset: str = field(
         default=None,
         metadata={"help": "Automatically splits the dataset into train-val-set on a specified subset. Defaults to 'None'"},
     )
@@ -83,8 +83,8 @@ if __name__ == "__main__":
     train_split_name = data_args.train_split_name
     val_split_name = data_args.eval_split_name
 
-    if data_args.do_split_on_subset:
-        dataset = train_val_test_split(dataset[str(data_args.do_split_on_subset)])
+    if data_args.split_on_subset:
+        dataset = train_val_test_split(dataset[str(data_args.split_on_subset)])
         train_split_name = 'train'
         val_split_name = 'val'
 
