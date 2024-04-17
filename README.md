@@ -52,20 +52,21 @@ python3 train_segmentation.py \
     --do_train \
     --do_eval \
     --learning_rate=1e-3 \
-    --num_train_epochs=1 \
+    --num_train_epochs=5 \
+    --lr_scheduler_type=cosine \
     --per_device_train_batch_size=32 \
     --per_device_eval_batch_size=32 \
     --evaluation_strategy=epoch \
     --save_strategy=epoch \
     --preprocessing_num_workers=2 \
     --dataloader_num_workers=2 \
-    --logging_steps=5 \
+    --logging_steps=100 \
     --load_best_model_at_end \
     --push_to_hub
 ```
 
-On a single NVIDIA RTX 24GB GPU, training takes approximately 2 minutes and improves the diarization error rate (DER) 
-from 27% to 21%, representing a 22% relative improvement in performance. The final model will be pushed to the Hugging Face
+On a single NVIDIA RTX 24GB GPU, training takes approximately 5 minutes and improves the diarization error rate (DER) 
+from 27% to 19%, representing a 29% relative improvement in performance. The final model will be pushed to the Hugging Face
 Hub, for example the checkpoint [diarizers-community/speaker-segmentation-fine-tuned-callhome-jpn](https://huggingface.co/diarizers-community/speaker-segmentation-fine-tuned-callhome-jpn).
 
 We encourage you to swap the CallHome Japanese dataset for a dataset in your language of choice. The [CallHome dataset](https://huggingface.co/datasets/diarizers-community/callhome)

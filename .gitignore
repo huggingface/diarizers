@@ -7,3 +7,5 @@ synthetic
 dist 
 build
 checkpoint
+diarizers.egg-info
+wandb
