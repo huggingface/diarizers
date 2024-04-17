@@ -58,6 +58,7 @@ class ModelArguments:
         metadata={"help": "Where do you want to store the pretrained models downloaded from huggingface.co"},
     )
 
+
 if __name__ == "__main__":
 
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -97,6 +98,9 @@ if __name__ == "__main__":
     model.from_pyannote_model(pretrained)
 
     preprocessor = Preprocess(model.config)
+
+    # Todo: allow saving with safetensors. 
+    training_args.save_safetensors = False
 
     if training_args.do_train:
         train_set = dataset['train'].map(
@@ -144,6 +148,7 @@ if __name__ == "__main__":
             kwargs["dataset"] = f"{data_args.dataset_name} {data_args.dataset_config_name}"
         else:
             kwargs["dataset"] = data_args.dataset_name
+    kwargs['tags'] = ['speaker-diarization', 'speaker-segmentation']
 
     if training_args.push_to_hub:
         trainer.push_to_hub(**kwargs)

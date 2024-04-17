@@ -52,7 +52,7 @@ python3 train_segmentation.py \
     --do_train \
     --do_eval \
     --learning_rate=1e-3 \
-    --num_train_epochs=5 \
+    --num_train_epochs=1 \
     --lr_scheduler_type=cosine \
     --per_device_train_batch_size=32 \
     --per_device_eval_batch_size=32 \
