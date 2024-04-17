@@ -2,9 +2,7 @@ import os
 
 from pyannote.audio import Model
 from datasets import load_dataset
-from diarizers.models.model import SegmentationModel
-from src.diarizers.test import Test
-from src.diarizers.utils import train_val_test_split
+from diarizers import SegmentationModel, Test, train_val_test_split
 from dataclasses import dataclass, field
 from transformers import HfArgumentParser
 from typing import Optional
