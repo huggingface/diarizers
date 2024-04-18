@@ -83,7 +83,6 @@ if __name__ == "__main__":
 
     test_dataset = dataset[data_args.test_split_name]
 
-
     if model_args.model_name_or_path == "pyannote/segmentation-3.0": 
         model = Model.from_pretrained(model_args.model_name_or_path, use_auth_token=True)
     else: 

@@ -99,8 +99,6 @@ if __name__ == "__main__":
 
     preprocessor = Preprocess(model.config)
 
-    # Todo: allow saving with safetensors. 
-    training_args.save_safetensors = False
 
     if training_args.do_train:
         train_set = dataset['train'].map(
