@@ -45,14 +45,14 @@ between native speakers:
 ```bash
 python3 train_segmentation.py \
     --dataset_name=diarizers-community/callhome \
-    --dataset_config_name=jpn \
+    --dataset_config_name=spa \
     --split_on_subset=data \
     --model_name_or_path=pyannote/segmentation-3.0 \
-    --output_dir=./speaker-segmentation-fine-tuned-callhome-jpn \
+    --output_dir=./speaker-segmentation-fine-tuned-callhome-spa \
     --do_train \
     --do_eval \
     --learning_rate=1e-3 \
-    --num_train_epochs=1 \
+    --num_train_epochs=5 \
     --lr_scheduler_type=cosine \
     --per_device_train_batch_size=32 \
     --per_device_eval_batch_size=32 \
@@ -106,7 +106,7 @@ python3 test_segmentation.py \
 ## Inference with pyannote
 
 The fine-tuned segmentation model can easily be loaded into the `pyannote` speaker diarization pipeline for inference. 
-To do so, we load the pre-trained segmentation pipeline, and subsequently override the segmentation model with our 
+To do so, we load the pre-trained speaker diarization pipeline, and subsequently override the segmentation model with our 
 fine-tuned checkpoint:
 
 ```python
