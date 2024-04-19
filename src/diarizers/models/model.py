@@ -228,12 +228,12 @@ class SegmentationModel(PreTrainedModel):
         self.max_speakers_per_chunk = len(self.specifications.classes)
 
         self.config = SegmentationModelConfig(
-            chunk_duration = self.chunk_duration, 
-            max_speakers_per_frame = self.max_speakers_per_frame, 
-            weigh_by_cardinality = self.weigh_by_cardinality, 
-            min_duration = self.min_duration, 
-            warm_up = self.warm_up, 
-            max_speakers_per_chunk = self.max_speakers_per_chunk
+            chunk_duration=self.chunk_duration, 
+            max_speakers_per_frame=self.max_speakers_per_frame, 
+            weigh_by_cardinality=self.weigh_by_cardinality, 
+            min_duration=self.min_duration, 
+            warm_up=self.warm_up, 
+            max_speakers_per_chunk=self.max_speakers_per_chunk
         )
 
     def to_pyannote_model(self):

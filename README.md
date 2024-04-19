@@ -45,10 +45,10 @@ between native speakers:
 ```bash
 python3 train_segmentation.py \
     --dataset_name=diarizers-community/callhome \
-    --dataset_config_name=spa \
+    --dataset_config_name=jpn \
     --split_on_subset=data \
     --model_name_or_path=pyannote/segmentation-3.0 \
-    --output_dir=./speaker-segmentation-fine-tuned-callhome-spa \
+    --output_dir=./speaker-segmentation-fine-tuned-callhome-jpn \
     --do_train \
     --do_eval \
     --learning_rate=1e-3 \
