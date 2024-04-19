@@ -135,7 +135,7 @@ sample["waveform"] = torch.from_numpy(sample.pop("array")[None, :]).to(device, d
 sample["sample_rate"] = sample.pop("sampling_rate")
 
 # perform inference
-diarization_output = pipeline(sample)
+diarization = pipeline(sample)
 
 # dump the diarization output to disk using RTTM format
 with open("audio.rttm", "w") as rttm:
@@ -145,7 +145,7 @@ with open("audio.rttm", "w") as rttm:
 To apply the diarization pipeline directly to an audio file, simply call:
 
 ```python
-diarization_output = pipeline("audio.wav")
+diarization = pipeline("audio.wav")
 ```
 
 ## Adding new datasets
