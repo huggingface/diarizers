@@ -220,6 +220,22 @@ class SegmentationModel(PreTrainedModel):
         self.model.activation = copy.deepcopy(pretrained.activation)
         self.model.activation.load_state_dict(pretrained.activation.state_dict())
 
+        self.chunk_duration = self.specifications.duration 
+        self.max_speakers_per_frame = self.specifications.powerset_max_classes
+        self.weigh_by_cardinality = False 
+        self.min_duration = self.specifications.min_duration
+        self.warm_up = self.specifications.warm_up
+        self.max_speakers_per_chunk = len(self.specifications.classes)
+
+        self.config = SegmentationModelConfig(
+            chunk_duration = self.chunk_duration, 
+            max_speakers_per_frame = self.max_speakers_per_frame, 
+            weigh_by_cardinality = self.weigh_by_cardinality, 
+            min_duration = self.min_duration, 
+            warm_up = self.warm_up, 
+            max_speakers_per_chunk = self.max_speakers_per_chunk
+        )
+
     def to_pyannote_model(self):
         """Convert the current model to a pyannote segmentation model for use in pyannote pipelines."""
 
