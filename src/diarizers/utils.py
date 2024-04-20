@@ -25,7 +25,7 @@ class Metrics:
             "false_alarm": FalseAlarmRate(0.5),
         }
 
-    def der_metric(self, eval_pred):
+    def __call__(self, eval_pred):
         logits, labels = eval_pred
 
         if self.powerset:

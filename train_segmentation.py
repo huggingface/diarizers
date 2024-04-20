@@ -134,7 +134,7 @@ if __name__ == "__main__":
         train_dataset=train_set,
         data_collator=DataCollator(max_speakers_per_chunk=model.config.max_speakers_per_chunk),
         eval_dataset=val_set,
-        compute_metrics=metrics.der_metric,
+        compute_metrics=metrics,
     )
 
     if training_args.do_eval:
