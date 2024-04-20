@@ -1,8 +1,8 @@
 import os
 
 from pyannote.audio import Model
-from datasets import load_dataset
-from diarizers import SegmentationModel, Test, train_val_test_split
+from datasets import load_dataset, DatasetDict
+from diarizers import SegmentationModel, Test
 from dataclasses import dataclass, field
 from transformers import HfArgumentParser
 from typing import Optional
@@ -78,7 +78,15 @@ if __name__ == "__main__":
         
     test_split_name = data_args.test_split_name
     if data_args.split_on_subset:
-        dataset = train_val_test_split(dataset[str(data_args.split_on_subset)])
+        
+        train_testvalid = dataset['data'].train_test_split(test_size=0.2, seed=42)
+        test_valid = train_testvalid['test'].train_test_split(test_size=0.5, seed=42)
+
+        dataset = DatasetDict({
+            'train': train_testvalid['train'],
+            'validation': test_valid['test'],
+            'test': test_valid['train']}
+        )
         test_split_name = 'test'
 
     test_dataset = dataset[data_args.test_split_name]

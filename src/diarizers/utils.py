@@ -7,25 +7,6 @@ from pyannote.audio.utils.powerset import Powerset
 
 from datasets import DatasetDict
 
-
-def train_val_test_split(dataset, train_size=0.8, val_size=0.1, test_size=0.1):
-    dataset_split = dataset.train_test_split(test_size=test_size, seed=42)
-    train_dataset = dataset_split["train"]
-    test_dataset = dataset_split["test"]
-
-    dataset = train_dataset.train_test_split(train_size=train_size / (train_size + val_size), seed=42)
-    train_dataset = dataset["train"]
-    val_dataset = dataset["test"]
-
-    return DatasetDict(
-        {
-            "train": train_dataset,
-            "validation": val_dataset,
-            "test": test_dataset,
-        }
-    )
-
-
 class Metrics:
     def __init__(self, specifications) -> None:
         self.powerset = specifications.powerset

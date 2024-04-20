@@ -3,8 +3,8 @@ from typing import Optional
 from pyannote.audio import Model
 from transformers import Trainer, TrainingArguments, HfArgumentParser
 
-from datasets import load_dataset
-from diarizers import Preprocess, SegmentationModel,  DataCollator, Metrics, train_val_test_split
+from datasets import load_dataset, DatasetDict
+from diarizers import Preprocess, SegmentationModel,  DataCollator, Metrics
 from dataclasses import dataclass, field
 
 @dataclass
@@ -85,9 +85,17 @@ if __name__ == "__main__":
     val_split_name = data_args.eval_split_name
 
     if data_args.split_on_subset:
-        dataset = train_val_test_split(dataset[str(data_args.split_on_subset)])
+        
+        train_testvalid = dataset['data'].train_test_split(test_size=0.2, seed=42)
+        test_valid = train_testvalid['test'].train_test_split(test_size=0.5, seed=42)
+
+        dataset = DatasetDict({
+            'train': train_testvalid['train'],
+            'validation': test_valid['test'],
+            'test': test_valid['train']}
+        )
         train_split_name = 'train'
-        val_split_name = 'val'
+        val_split_name = 'validation'
 
     pretrained = Model.from_pretrained(
         model_args.model_name_or_path,
@@ -98,9 +106,8 @@ if __name__ == "__main__":
 
     preprocessor = Preprocess(model.config)
 
-
     if training_args.do_train:
-        train_set = dataset['train'].map(
+        train_set = dataset[str(train_split_name)].map(
             lambda file: preprocessor(file, random=False, overlap=0.5), 
             num_proc=data_args.preprocessing_num_workers, 
             remove_columns=next(iter(dataset.values())).column_names,
@@ -109,7 +116,7 @@ if __name__ == "__main__":
         ).with_format("torch")
 
     if training_args.do_eval: 
-        val_set = dataset['validation'].map(
+        val_set = dataset[str(val_split_name)].map(
             lambda file: preprocessor(file, random=False, overlap=0.0), 
             num_proc=data_args.preprocessing_num_workers, 
             remove_columns=next(iter(dataset.values())).column_names,
@@ -136,7 +143,7 @@ if __name__ == "__main__":
     if training_args.do_train:
         trainer.train()
 
-    # 14. Write Training Stats
+    # Write Training Stats
     kwargs = {"finetuned_from": model_args.model_name_or_path, "tasks": "speaker diarization"}
     if data_args.dataset_name is not None:
         kwargs["dataset_tags"] = data_args.dataset_name
