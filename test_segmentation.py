@@ -86,8 +86,7 @@ if __name__ == "__main__":
     if model_args.model_name_or_path == "pyannote/segmentation-3.0": 
         model = Model.from_pretrained(model_args.model_name_or_path, use_auth_token=True)
     else: 
-        model = SegmentationModel()
-        model = model.from_pretrained(
+        model = SegmentationModel().from_pretrained(
             model_args.model_name_or_path,
             cache_dir=model_args.cache_dir,  
             use_auth_token=True

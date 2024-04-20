@@ -191,50 +191,49 @@ class SegmentationModel(PreTrainedModel):
 
         return seg_loss
 
-    def from_pyannote_model(self, pretrained):
+    @classmethod
+    def from_pyannote_model(cls, pretrained):
         """Copy the weights and architecture of a pre-trained Pyannote model.
 
         Args:
             pretrained (pyannote.core.Model): pretrained pyannote segmentation model.
         """
-        self.specifications = self.model.specifications
-        self.model.build()
-        self.setup_loss_func()
+        # Initialize model: 
+        specifications = copy.deepcopy(pretrained.specifications)
 
-        self.model.hparams = copy.deepcopy(pretrained.hparams)
+        # Copy pretrained model hyperparameters: 
+        chunk_duration = specifications.duration 
+        max_speakers_per_frame = specifications.powerset_max_classes
+        weigh_by_cardinality = False 
+        min_duration = specifications.min_duration
+        warm_up = specifications.warm_up
+        max_speakers_per_chunk = len(specifications.classes)
 
-        self.model.sincnet = copy.deepcopy(pretrained.sincnet)
-        self.model.sincnet.load_state_dict(pretrained.sincnet.state_dict())
-
-        self.model.lstm = copy.deepcopy(pretrained.lstm)
-        self.model.lstm.load_state_dict(pretrained.lstm.state_dict())
-
-        self.model.linear = copy.deepcopy(pretrained.linear)
-        self.model.linear.load_state_dict(pretrained.linear.state_dict())
-
-        self.model.specifications = copy.deepcopy(pretrained.specifications)
-
-        self.model.classifier = copy.deepcopy(pretrained.classifier)
-        self.model.classifier.load_state_dict(pretrained.classifier.state_dict())
-
-        self.model.activation = copy.deepcopy(pretrained.activation)
-        self.model.activation.load_state_dict(pretrained.activation.state_dict())
-
-        self.chunk_duration = self.specifications.duration 
-        self.max_speakers_per_frame = self.specifications.powerset_max_classes
-        self.weigh_by_cardinality = False 
-        self.min_duration = self.specifications.min_duration
-        self.warm_up = self.specifications.warm_up
-        self.max_speakers_per_chunk = len(self.specifications.classes)
-
-        self.config = SegmentationModelConfig(
-            chunk_duration=self.chunk_duration, 
-            max_speakers_per_frame=self.max_speakers_per_frame, 
-            weigh_by_cardinality=self.weigh_by_cardinality, 
-            min_duration=self.min_duration, 
-            warm_up=self.warm_up, 
-            max_speakers_per_chunk=self.max_speakers_per_chunk
+        config = SegmentationModelConfig(
+            chunk_duration=chunk_duration, 
+            max_speakers_per_frame=max_speakers_per_frame, 
+            weigh_by_cardinality=weigh_by_cardinality, 
+            min_duration=min_duration, 
+            warm_up=warm_up, 
+            max_speakers_per_chunk=max_speakers_per_chunk
         )
+
+        model = cls(config)
+
+        # Copy pretrained model weights: 
+        model.model.hparams = copy.deepcopy(pretrained.hparams)
+        model.model.sincnet = copy.deepcopy(pretrained.sincnet)
+        model.model.sincnet.load_state_dict(pretrained.sincnet.state_dict())
+        model.model.lstm = copy.deepcopy(pretrained.lstm)
+        model.model.lstm.load_state_dict(pretrained.lstm.state_dict())
+        model.model.linear = copy.deepcopy(pretrained.linear)
+        model.model.linear.load_state_dict(pretrained.linear.state_dict())
+        model.model.classifier = copy.deepcopy(pretrained.classifier)
+        model.model.classifier.load_state_dict(pretrained.classifier.state_dict())
+        model.model.activation = copy.deepcopy(pretrained.activation)
+        model.model.activation.load_state_dict(pretrained.activation.state_dict())
+
+        return model
 
     def to_pyannote_model(self):
         """Convert the current model to a pyannote segmentation model for use in pyannote pipelines."""

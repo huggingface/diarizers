@@ -94,8 +94,7 @@ if __name__ == "__main__":
         cache_dir=model_args.cache_dir,  
         use_auth_token=True
     )
-    model = SegmentationModel()
-    model.from_pyannote_model(pretrained)
+    model = SegmentationModel.from_pyannote_model(pretrained)
 
     preprocessor = Preprocess(model.config)
 
