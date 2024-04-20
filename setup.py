@@ -78,7 +78,7 @@ from setuptools import find_packages, setup
 _deps = [
     "accelerate>=0.14.0",
     "torch>=1.9",
-    "transformers==4.40.0",
+    "transformers>=4.40.0",
     "black==22.8",
     "isort>=5.5.4",
     "flake8>=3.8.3",
