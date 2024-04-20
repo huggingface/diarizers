@@ -124,7 +124,7 @@ pipeline.to(device)
 # replace the segmentation model with your fine-tuned one
 model = SegmentationModel().from_pretrained("diarizers-community/speaker-segmentation-fine-tuned-callhome-jpn")
 model = model.to_pyannote_model()
-pipeline.segmentation_model = model.to(device)
+pipeline._segmentation.model = model.to(device)
 
 # load dataset example
 dataset = load_dataset("diarizers-community/callhome", "jpn", split="data")
