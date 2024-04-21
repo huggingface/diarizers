@@ -30,7 +30,7 @@ class DataTrainingArguments:
     )
 
     eval_split_name: str = field(
-        default="val", metadata={"help": "The name of the training data set split to use (via the datasets library). Defaults to 'val'"}
+        default="validation", metadata={"help": "The name of the training data set split to use (via the datasets library). Defaults to 'val'"}
     )
     
     split_on_subset: str = field(

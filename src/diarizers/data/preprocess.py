@@ -62,9 +62,9 @@ class Preprocess:
         _, self.num_frames_per_chunk, _ = model(torch.rand((1, int(self.chunk_duration * self.sample_rate)))).shape
 
     def get_labels_in_file(self, file):
-        """Get speakers present in file.
+        """Get speakers in file.
         Args:
-            file (_type_): dataset row from the input dataset.
+            file (_type_): dataset row from input dataset.
 
         Returns:
             file_labels (list): a list of all speakers in the audio file.
@@ -78,11 +78,11 @@ class Preprocess:
         return file_labels
 
     def get_segments_in_file(self, file, labels):
-        """Get segments present in file.
+        """Get segments in file.
 
         Args:
-            file (_type_): _description_
-            labels (_type_): _description_
+            file (_type_): dataset row from input dataset.
+            labels (_type_):  a list of all speakers in the audio file.
 
         Returns:
             annotations (numpy array): _description_
@@ -103,7 +103,7 @@ class Preprocess:
         return annotations
 
     def get_chunk(self, file, start_time):
-        """Method used to get an audio chunk from an audio file given at start_time.
+        """Method used to get an audio chunk from an audio file given a start_time.
 
         Args:
             file (dict): dataset row containing the "audio" feature.
@@ -157,7 +157,7 @@ class Preprocess:
         return waveform, y, labels
 
     def get_start_positions(self, file, overlap, random=False):
-        """Get the start positions of the audio_chunks in the input audio file.
+        """Get start positions from the audio_chunks in the input audio file.
 
         Args:
             file (dict): dataset row containing the "audio" feature.

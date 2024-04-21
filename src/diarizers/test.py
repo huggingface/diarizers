@@ -33,15 +33,15 @@ from tqdm import tqdm
 
 
 class Test:
-    """Class used to evaluate a SegmentationModel at inference time on a test set."""
+    """Class used to evaluate a SegmentationModel at inference time on a given test set."""
 
     def __init__(self, test_dataset, model, step=2.5):
-        """_summary_
+        """init method
 
         Args:
-            test_dataset (_type_): _description_
-            model (_type_): _description_
-            step (float, optional): _description_. Defaults to 2.5.
+            test_dataset (_type_): Hugging Face speaker diarization test dataset
+            model (SegmentationModel): SegmentationModel used at inference. 
+            step (float, optional): Steps between successive generated audio chunks. Defaults to 2.5.
         """
 
         self.test_dataset = test_dataset
@@ -66,7 +66,8 @@ class Test:
         }
 
     def predict(self, file):
-        """_summary_
+        """Make a prediction on a dataset row, 
+            using pyannote inference object. 
 
         Args:
             file (_type_): _description_
@@ -84,13 +85,12 @@ class Test:
         return prediction
 
     def compute_gt(self, file):
-        """_summary_
-
+        """
         Args:
-            file (_type_): _description_
+            file (_type_): dataset row.
 
         Returns:
-            _type_: _description_
+            gt: numpy array with shape (num_frames, num_speakers). 
         """
 
         audio = torch.tensor(file["audio"]["array"]).unsqueeze(0).to(torch.float32)
@@ -116,10 +116,10 @@ class Test:
         return gt
 
     def compute_metrics_on_file(self, file):
-        """_summary_
+        """coppute and update metrics on a dataset row. 
 
         Args:
-            file (_type_): _description_
+            file (_type_): a Hugging Face dataset row. 
         """
 
         gt = self.compute_gt(file)
@@ -134,8 +134,8 @@ class Test:
             reference_window = reference.crop(window, mode="center")
             common_num_frames = min(self.num_frames, reference_window.shape[0])
 
-            ref_num_frames, ref_num_speakers = reference_window.shape
-            pred_num_frames, pred_num_speakers = pred.shape
+            _, ref_num_speakers = reference_window.shape
+            _, pred_num_speakers = pred.shape
 
             if pred_num_speakers > ref_num_speakers:
                 reference_window = np.pad(reference_window, ((0, 0), (0, pred_num_speakers - ref_num_speakers)))
@@ -151,10 +151,9 @@ class Test:
             self.metrics["confusion"](pred, target)
 
     def compute_metrics(self):
-        """_summary_
-
+        """Main method, used to compute speaker diarization metrics on test_dataset. 
         Returns:
-            _type_: _description_
+            dict: metric values. 
         """
 
         for file in tqdm(self.test_dataset):

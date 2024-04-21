@@ -5,10 +5,16 @@ from pyannote.audio.torchmetrics import (DiarizationErrorRate, FalseAlarmRate,
                                          SpeakerConfusionRate)
 from pyannote.audio.utils.powerset import Powerset
 
-from datasets import DatasetDict
 
 class Metrics:
+    """Metric class used by the HF trainer to compute speaker diarization metrics. 
+    """
     def __init__(self, specifications) -> None:
+        """init method
+
+        Args:
+            specifications (_type_): specifications attribute from a SegmentationModel. 
+        """
         self.powerset = specifications.powerset
         self.classes = specifications.classes
         self.powerset_max_classes = specifications.powerset_max_classes
@@ -26,6 +32,7 @@ class Metrics:
         }
 
     def __call__(self, eval_pred):
+        
         logits, labels = eval_pred
 
         if self.powerset:

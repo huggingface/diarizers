@@ -5,7 +5,7 @@ import os
 
 from pydub import AudioSegment
 
-from src.diarizers.data.speaker_diarization import SpeakerDiarizationDataset
+from diarizers import SpeakerDiarizationDataset
 
 
 def get_ami_files(path_to_ami, setup="only_words", hm_type="ihm"):
@@ -126,7 +126,6 @@ if __name__ == "__main__":
         ami_dataset_ihm = SpeakerDiarizationDataset(audio_files, rttm_files).construct_dataset()
         if args.push_to_hub == "True":
             ami_dataset_ihm.push_to_hub(args.hub_repository, "ihm")
-
         audio_files, rttm_files = get_ami_files(path_to_ami=args.path_to_dataset, setup=args.setup, hm_type="sdm")
         ami_dataset_sdm = SpeakerDiarizationDataset(audio_files, rttm_files).construct_dataset()
         if args.push_to_hub == "True":
@@ -140,7 +139,7 @@ if __name__ == "__main__":
             audio_files, cha_files = get_callhome_files(args.path_to_dataset, langage=langage)
             dataset = SpeakerDiarizationDataset(
                 audio_files, cha_files, annotations_type="cha", crop_unannotated_regions=True
-            ).construct_dataset(num_proc=24)
+            ).construct_dataset()
 
             if args.push_to_hub == "True":
                 dataset.push_to_hub(args.hub_repository, str(langage))
@@ -155,6 +154,6 @@ if __name__ == "__main__":
     if args.dataset == "voxconverse":
         audio_files, rttm_files = get_voxconverse_files(args.path_to_dataset)
         dataset = SpeakerDiarizationDataset(audio_files, rttm_files).construct_dataset()
-        print(dataset)
+
         if args.push_to_hub == "True":
             dataset.push_to_hub(args.hub_repository)

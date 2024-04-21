@@ -97,13 +97,21 @@ git clone git@hf.co:datasets/medkit/simsamu
 
 #### Push to hub: 
 
-We pushed each of these datasets using a `spd_datasets.py` and the following script: 
+We pushed each of these datasets using `spd_datasets.py` and the following script: 
 
 ```
-python3 -m spd_datasets \
+git clone https://github.com/huggingface/diarizers.git
+cd diarizers
+pip install -e .
+pip install pydub
+cd datasets
+```
+
+```
+python3 spd_datasets.py \
     --dataset=callhome \
-    --path_to_callhome=/path_to_callhome \
-    --push_to_hub=True \
+    --path_to_dataset=/path_to_callhome \
+    --push_to_hub=False \
     --hub_repository=diarizers-community/callhome \
 ```
 
