@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
     data_args, model_args, training_args = parser.parse_args_into_dataclasses()
 
-    # Load the dataset: 
+    # Load the Dataset: 
     if str(data_args.dataset_config_name): 
         dataset = load_dataset(
             str(data_args.dataset_name), 
@@ -84,10 +84,11 @@ if __name__ == "__main__":
     train_split_name = data_args.train_split_name
     val_split_name = data_args.eval_split_name
 
+    # Split in Train-Val-Test:
     if data_args.split_on_subset:
         
-        train_testvalid = dataset['data'].train_test_split(test_size=0.2, seed=42)
-        test_valid = train_testvalid['test'].train_test_split(test_size=0.5, seed=42)
+        train_testvalid = dataset[str(data_args.split_on_subset)].train_test_split(test_size=0.2, seed=0)
+        test_valid = train_testvalid['test'].train_test_split(test_size=0.5, seed=0)
 
         dataset = DatasetDict({
             'train': train_testvalid['train'],
@@ -97,6 +98,7 @@ if __name__ == "__main__":
         train_split_name = 'train'
         val_split_name = 'validation'
 
+    # Load the Pretrained Pyannote Segmentation Model:
     pretrained = Model.from_pretrained(
         model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,  
@@ -104,8 +106,10 @@ if __name__ == "__main__":
     )
     model = SegmentationModel.from_pyannote_model(pretrained)
 
+    # Load the preprocessor: 
     preprocessor = Preprocess(model.config)
 
+    # Preprocess:
     if training_args.do_train:
         train_set = dataset[str(train_split_name)].map(
             lambda file: preprocessor(file, random=False, overlap=0.5), 
@@ -128,6 +132,7 @@ if __name__ == "__main__":
     # Load metrics:
     metrics = Metrics(model.specifications)
 
+    # Define the Trainer:
     trainer = Trainer(
         model=model,
         args=training_args,
@@ -137,6 +142,7 @@ if __name__ == "__main__":
         compute_metrics=metrics,
     )
 
+    # Train!
     if training_args.do_eval:
         first_eval = trainer.evaluate()
         print("Initial metric values: ", first_eval)
@@ -154,6 +160,7 @@ if __name__ == "__main__":
             kwargs["dataset"] = data_args.dataset_name
     kwargs['tags'] = ['speaker-diarization', 'speaker-segmentation']
 
+    # Push to Hub
     if training_args.push_to_hub:
         trainer.push_to_hub(**kwargs)
     else:

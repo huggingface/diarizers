@@ -99,13 +99,6 @@ git clone git@hf.co:datasets/medkit/simsamu
 
 We pushed each of these datasets using `spd_datasets.py` and the following script: 
 
-```
-git clone https://github.com/huggingface/diarizers.git
-cd diarizers
-pip install -e .
-pip install pydub
-cd datasets
-```
 
 ```
 python3 spd_datasets.py \

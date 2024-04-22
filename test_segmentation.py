@@ -62,7 +62,7 @@ if __name__ == "__main__":
     parser = HfArgumentParser((DataTrainingArguments, ModelArguments))
     data_args, model_args = parser.parse_args_into_dataclasses()
 
-    # Load the dataset: 
+    # Load the Dataset:
     if str(data_args.dataset_config_name): 
         dataset = load_dataset(
             str(data_args.dataset_name), 
@@ -75,12 +75,14 @@ if __name__ == "__main__":
             str(data_args.dataset_config_name), 
             num_proc=int(data_args.preprocessing_num_workers)
     )
-        
+    
     test_split_name = data_args.test_split_name
+
+    # Split in Train-Val-Test and use Test Subset:
     if data_args.split_on_subset:
         
-        train_testvalid = dataset['data'].train_test_split(test_size=0.2, seed=42)
-        test_valid = train_testvalid['test'].train_test_split(test_size=0.5, seed=42)
+        train_testvalid = dataset[str(data_args.split_on_subset)].train_test_split(test_size=0.2, seed=0)
+        test_valid = train_testvalid['test'].train_test_split(test_size=0.5, seed=0)
 
         dataset = DatasetDict({
             'train': train_testvalid['train'],
@@ -91,6 +93,7 @@ if __name__ == "__main__":
 
     test_dataset = dataset[data_args.test_split_name]
 
+    # Load the Pretrained or Fine-Tuned segmentation model:
     if model_args.model_name_or_path == "pyannote/segmentation-3.0": 
         model = Model.from_pretrained(model_args.model_name_or_path, use_auth_token=True)
     else: 
@@ -101,6 +104,7 @@ if __name__ == "__main__":
         )
         model = model.to_pyannote_model()
 
+    # Test and Print Metrics:
     test = Test(test_dataset, model, step=2.5)
     metrics = test.compute_metrics()
     print(metrics)
