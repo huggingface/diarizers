@@ -96,7 +96,7 @@ CallHome Japanese dataset:
 ```bash
 python3 test_segmentation.py \
     --dataset_name=diarizers-community/callhome \
-    --dataset_config_name=jpn \ 
+    --dataset_config_name=jpn \
     --split_on_subset=data \
     --test_split_name=test \
     --model_name_or_path=diarizers-community/speaker-segmentation-fine-tuned-callhome-jpn \
