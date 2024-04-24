@@ -30,7 +30,7 @@ To load pre-trained diarization models from the Hub, you'll first need to accept
 1. [pyannote/segmentation-3.0](https://hf.co/pyannote/segmentation-3.0)
 2. [pyannote/speaker-diarization-3.1](https://hf.co/pyannote/speaker-diarization-3.1)
 
-If you're using the CallHome dataset for training, you'll also need to accept its terms of use:
+To load the CallHome dataset from the Hub, you'll also need to accept its terms of use:
 
 1. [diarizers-community/callhome](https://huggingface.co/datasets/diarizers-community/callhome)
 
