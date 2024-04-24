@@ -1,6 +1,6 @@
 # 🤗 Diarizers
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1eJfA2XUa-mXwdMy7DoYKVYHI1iTd9Vkt?usp=sharing)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kamilakesbi/notebooks/blob/main/fine_tune_pyannote.ipynb)
 
 🤗 Diarizers is a library for fine-tuning [`pyannote`](https://github.com/pyannote/pyannote-audio/tree/main) speaker 
 diarization models using the Hugging Face ecosystem. It can be used to improve performance on both English and multilingual 
