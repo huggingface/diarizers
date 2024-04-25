@@ -106,7 +106,7 @@ python3 test_segmentation.py \
     --test_split_name=test \
     --model_name_or_path=diarizers-community/speaker-segmentation-fine-tuned-callhome-jpn \
     --preprocessing_num_workers=2
-```
+``` 
 
 ## Inference with pyannote
 
