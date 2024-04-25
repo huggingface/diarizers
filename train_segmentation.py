@@ -61,14 +61,14 @@ class ModelArguments:
 
 if __name__ == "__main__":
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
     parser = HfArgumentParser((DataTrainingArguments, ModelArguments, TrainingArguments))
 
     data_args, model_args, training_args = parser.parse_args_into_dataclasses()
 
-    # Load the Dataset: 
-    if str(data_args.dataset_config_name): 
+    # Load the Dataset:
+    if data_args.dataset_config_name: 
         dataset = load_dataset(
             str(data_args.dataset_name), 
             str(data_args.dataset_config_name), 
@@ -77,10 +77,9 @@ if __name__ == "__main__":
     else: 
         dataset = load_dataset(
             str(data_args.dataset_name), 
-            str(data_args.dataset_config_name), 
             num_proc=int(data_args.preprocessing_num_workers)
     )
-        
+   
     train_split_name = data_args.train_split_name
     val_split_name = data_args.eval_split_name
 
