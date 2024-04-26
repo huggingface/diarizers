@@ -98,7 +98,7 @@ class PyanNet_nn(torch.nn.Module):
                 "linear": {"hidden_size": 128, "num_layers": 2},
                 "lstm": {
                     "hidden_size": 128,
-                    "num_layers": 2,
+                    "num_layers": 4,
                     "bidirectional": True,
                     "monolithic": True,
                     "dropout": 0.0,
