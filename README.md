@@ -32,7 +32,7 @@ To load pre-trained diarization models from the Hub, you'll first need to accept
 
 To load the CallHome dataset from the Hub, you'll also need to accept its terms of use:
 
-1. [diarizers-community/callhome](https://huggingface.co/datasets/diarizers-community/callhome)
+1. [diarizers-community/callhome](https://huggingface.co/datasets/talkbank/callhome)
 
 And subsequently use a Hugging Face authentication token to log in with: 
 
