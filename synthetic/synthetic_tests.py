@@ -418,16 +418,16 @@ if __name__ == "__main__":
     config = {
         "dataset": {
             "dataset_name": "mozilla-foundation/common_voice_16_1", 
-            "split": "en", 
+            "split": "ja", 
             "subset": 'train', 
             "speaker_column_name": "client_id", 
             "audio_column_name": "audio",
-            "min_samples_per_speaker": 20, 
+            "min_samples_per_speaker": 10, 
             "nb_speakers_from_dataset": 100, 
         }, 
         "meeting":{
             "nb_speakers_per_meeting": 3, 
-            "num_meetings": 3, 
+            "num_meetings": 800, 
             "segments_per_meeting": 32, 
             "next_speaker_proba": 0.1, 
             "normalize": True, 
@@ -445,11 +445,11 @@ if __name__ == "__main__":
             "ir_path": "/home/kamil/datasets/MIT-ir-survey",
             "sample_rate":16000,
         }, 
-        "num_proc": 1,
+        "num_proc": 24,
     }
 
     synthetic_dataset = SyntheticDataset(
        config, 
     ).create_spd_dataset()
 
-    synthetic_dataset.push_to_hub("kamilakesbi/synthetic_dataset_en")
+    synthetic_dataset.push_to_hub("kamilakesbi/synthetic_dataset_ja")
