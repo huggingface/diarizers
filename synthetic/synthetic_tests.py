@@ -23,47 +23,42 @@ def pickle_model(model):
 class SyntheticDataset:
     def __init__(
         self,
-        dataset_name="mozilla-foundation/common_voice_16_1",
-        split="en",
-        subset="train",
-        speaker_column_name="client_id",
-        audio_column_name="audio",
-        min_samples_per_speaker=20,
-        nb_speakers_from_dataset=100, 
-        nb_speakers_per_meeting=3,
-        num_meetings=200,
-        segments_per_meeting=32,
-        probability_same=0.1,
-        num_proc=24,
-        sample_rate=16000,
+        config, 
     ) -> None:
 
-        self.dataset_name = dataset_name
-        self.subset = subset
-        self.split = split
-        self.min_samples_per_speaker = min_samples_per_speaker
-        self.speaker_column_name = speaker_column_name
-        self.audio_column_name = audio_column_name
-        self.num_proc = num_proc
-        self.segments_per_meeting = segments_per_meeting
-        self.nb_speakers_per_meeting = nb_speakers_per_meeting
-        self.num_meetings = num_meetings
-        self.probability_same = probability_same
-        self.sample_rate = sample_rate
 
-        self.normalize = True
-        self.augment = False
+        self.dataset_name = config['dataset']['dataset_name']
+        self.subset = config['dataset']['subset']
+        self.split = config['dataset']['split']
+        self.min_samples_per_speaker = config['dataset']['min_samples_per_speaker']
+        self.speaker_column_name = config['dataset']['speaker_column_name']
+        self.audio_column_name = config['dataset']['audio_column_name']
+        self.nb_speakers_from_dataset = config['dataset']['nb_speakers_from_dataset']
 
-        self.silent_regions = False
-        self.silence_duration = 5
-        self.silence_proba = 0.8
+        self.num_proc = config['num_proc']
+
+        self.segments_per_meeting = config['meeting']['segments_per_meeting']
+        self.nb_speakers_per_meeting = config['meeting']['nb_speakers_per_meeting']
+        self.num_meetings = config['meeting']['num_meetings']
+        self.probability_same = config['meeting']['next_speaker_proba']
+        self.sample_rate = config['meeting']['sample_rate']
+
+        self.normalize = config['meeting']['normalize']
+        self.augment = config['meeting']['augment']
+
+        self.silent_regions = config['meeting']['silence']['silent_regions']
+        self.silence_duration = config['meeting']['silence']['silent_duration']
+        self.silence_proba = config['meeting']['silence']['silent_proba']
+
+        self.overlap_proba = config['meeting']['overlap']['overlap_proba']
+        self.overlap_length = config['meeting']['overlap']['overlap_length']
 
         dataset = load_dataset(str(self.dataset_name), str(self.split))
         self.dataset = dataset[str(self.subset)].select_columns([str(self.speaker_column_name), str(self.audio_column_name)])
 
         nb_speaker_appearance = self.dataset.to_pandas()[str(self.speaker_column_name)].value_counts()
         # Sample only from speakers with more than 10 samples:
-        self.speakers_to_sample_from = list(nb_speaker_appearance[nb_speaker_appearance > min_samples_per_speaker].keys())[:nb_speakers_from_dataset]
+        self.speakers_to_sample_from = list(nb_speaker_appearance[nb_speaker_appearance > self.min_samples_per_speaker].keys())[:self.nb_speakers_from_dataset]
 
         print('nb speakers in dataset to keep:', len(self.speakers_to_sample_from))
         # Generate the datasets associated to each speakers: 
@@ -287,7 +282,11 @@ class SyntheticDataset:
             speakers_long.append(speakers_vad[i])
 
             end = start + len(audio_segment) / self.sample_rate
-            start = end + np.random.rayleigh(0.002) - 0.002
+
+            if np.random.rand() < self.overlap_proba:
+                start = end + np.random.rayleigh(0.002) - 0.002 - self.overlap_length * np.random.rand()
+            else: 
+                start = end + np.random.rayleigh(0.002) - 0.002
 
         file_timestamps_start = list(chain.from_iterable(file_timestamps_start_long))
         file_timestamps_end = list(chain.from_iterable(file_timestamps_end_long))
@@ -401,7 +400,7 @@ class SyntheticDataset:
             lambda example: self.concatenate(example),
             batched=True,
             batch_size=self.nb_speakers_from_dataset,
-            remove_columns=meeting_samples.column_names,
+            remove_columns=audio_samples.column_names,
             num_proc=self.num_proc,
         ).cast_column("audio", Audio(sampling_rate=self.sample_rate))
 
@@ -415,45 +414,42 @@ class SyntheticDataset:
 
 if __name__ == "__main__":
 
+
     config = {
-        "std_concatenate": 0.5,
-        "normalize": False,
-        "augment": True,
-        "silent_regions": {
-            "silent_regions": True,
-            "silence_duration": 5,
-            "silence_proba": 0.1,
-        },
-        "bn_path": "/home/kamil/datasets/wham_noise/wham_noise/tr",
-        "ir_path": "/home/kamil/datasets/MIT-ir-survey",
-        "short_audio_threshold": 2.5, 
+        "dataset": {
+            "dataset_name": "mozilla-foundation/common_voice_16_1", 
+            "split": "en", 
+            "subset": 'train', 
+            "speaker_column_name": "client_id", 
+            "audio_column_name": "audio",
+            "min_samples_per_speaker": 20, 
+            "nb_speakers_from_dataset": 100, 
+        }, 
+        "meeting":{
+            "nb_speakers_per_meeting": 3, 
+            "num_meetings": 3, 
+            "segments_per_meeting": 32, 
+            "next_speaker_proba": 0.1, 
+            "normalize": True, 
+            "augment": False, 
+            "silence":{
+                "silent_regions": True,
+                "silent_duration": 5,
+                "silent_proba": 0.2,
+            }, 
+            "overlap": {
+                "overlap_proba": 0.2, 
+                "overlap_length": 2, 
+            }, 
+            "bn_path": "/home/kamil/datasets/wham_noise/wham_noise/tr",
+            "ir_path": "/home/kamil/datasets/MIT-ir-survey",
+            "sample_rate":16000,
+        }, 
+        "num_proc": 1,
     }
 
-    # Initial Dataset params: 
-    dataset_name = "mozilla-foundation/common_voice_16_1"
-    split = "en"
-    subset = "train"
-    speaker_column_name = "client_id"
-    audio_column_name = "audio"
-    min_samples_per_speaker = 20
-    nb_speakers_from_dataset = 100
-
-    # Meeting params: 
-    nb_speakers_per_meeting = 3
-    num_meetings = 800
-    segments_per_meeting = 32
-
-    probability_same = 0.1
-    num_proc = 24
-    sample_rate = 16000
-
     synthetic_dataset = SyntheticDataset(
-        num_proc=24,
-        num_meetings=30,
-        nb_speakers_per_meeting=3,
-        min_samples_per_speaker=20,
-        nb_speakers_from_dataset=100, 
-        segments_per_meeting=32,
+       config, 
     ).create_spd_dataset()
 
     synthetic_dataset.push_to_hub("kamilakesbi/synthetic_dataset_en")
