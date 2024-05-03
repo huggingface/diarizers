@@ -12,6 +12,9 @@ from datasets import Audio, Dataset, concatenate_datasets, load_dataset
 import copy
 from tqdm import tqdm
 
+# from denoiser import pretrained
+# from denoiser.dsp import convert_audio
+
 torch.multiprocessing.set_start_method("spawn")
 
 def pickle_model(model):
@@ -79,8 +82,8 @@ class SyntheticDataset:
 
             self.augmentation_pipeline = Compose(
                 [
-                    ApplyImpulseResponse(self.ir_path, p=0.5),
-                    AddBackgroundNoise(self.bn_path, 20, 60, p=0.5),
+                    ApplyImpulseResponse(self.ir_path, p=0.3),
+                    AddBackgroundNoise(self.bn_path, 20, 60, p=0.3),
                     AddGaussianSNR(
                         min_snr_db=30.0,
                         max_snr_db=50.0,
@@ -110,11 +113,11 @@ class SyntheticDataset:
             }
         )
 
-        # Sample speakers in meeting: 
+        # Sample speakers in meeting:
         self.sampled_speakers = random.sample(self.speakers_to_sample_from, self.nb_speakers_per_meeting)
 
-        # Generate the pool of audios associated to the sampled speakers: 
-        self.audio_pool = {key: copy.deepcopy(self.per_speaker_dataset[key]).shuffle() for key in self.sampled_speakers}
+        # Generate the pool of audios associated to the sampled speakers:
+        self.audio_pool = {key: self.per_speaker_dataset[key].shuffle() for key in self.sampled_speakers}
 
         self.current_speaker = self.sampled_speakers[0]
         sample = self.audio_pool[self.current_speaker].select(range(1))
@@ -133,6 +136,9 @@ class SyntheticDataset:
 
             # Sample an audio segment from current speaker:
             sample = self.audio_pool[self.current_speaker].select(range(1))
+
+        assert len(batch_samples) == self.segments_per_meeting
+        del self.audio_pool
         
         return batch_samples
 
@@ -208,6 +214,33 @@ class SyntheticDataset:
         assert len(speakers) > 0
 
         return (audio_segment, file_timestamps_start, file_timestamps_end, speakers)
+    
+    # def denoise_audio(self, audio_file):
+    #     """_summary_
+
+    #     Args:
+    #         audio_file (_type_): _description_
+
+    #     Returns:
+    #         _type_: _description_
+    #     """
+
+    #     audio_file_converted = convert_audio(
+    #         torch.tensor(audio_file).unsqueeze(0).cuda(),
+    #         self.sample_rate,
+    #         self.denoiser.sample_rate,
+    #         self.denoiser.chin,
+    #     )
+    #     with torch.no_grad():
+    #         audio_file = (
+    #             self.denoiser(torch.tensor(audio_file_converted, dtype=torch.float32))[
+    #                 0
+    #             ]
+    #             .squeeze(0)
+    #             .cpu()
+    #             .numpy()
+    #         )
+    #     return audio_file
 
     def add_silent_regions(
         self,
@@ -270,7 +303,7 @@ class SyntheticDataset:
 
             segment_length = min(audio_file_length - start_index, len(audio_segment))
 
-            audio_file[start_index : start_index + segment_length] += audio_segment[:segment_length]
+            audio_file[start_index:start_index + segment_length] += audio_segment[:segment_length]
 
             file_timestamps_start.append(
                 [timestamps_start + start for timestamps_start in file_timestamps_start_vad[i]]
@@ -388,17 +421,10 @@ class SyntheticDataset:
             # Do this to force all batches to have the same size when num_proc > 1:
             self.num_meetings = (self.num_meetings // self.num_proc) * self.num_proc
 
-        # for _ in tqdm(range(self.num_meetings)):
+        for _ in tqdm(range(self.num_meetings)):
 
-        #     meeting_samples = self.sample_meeting_segments()
-        #     audio_samples = concatenate_datasets([audio_samples, meeting_samples])
-
-        # audio_samples.push_to_hub("kamilakesbi/audio_samples", private=True)
-
-        audio_samples = load_dataset("kamilakesbi/audio_samples", split='train')
-
-        print(len(audio_samples))
-        assert len(audio_samples) % (self.num_proc * self.segments_per_meeting) == 0
+            meeting_samples = self.sample_meeting_segments()
+            audio_samples = concatenate_datasets([audio_samples, meeting_samples])
 
         final_dataset = audio_samples.map(
             lambda example: self.concatenate(example),
@@ -429,7 +455,7 @@ if __name__ == "__main__":
             "nb_speakers_from_dataset": 100, 
         }, 
         "meeting":{
-            "nb_speakers_per_meeting": 3, 
+            "nb_speakers_per_meeting": 2, 
             "num_meetings": 1600, 
             "segments_per_meeting": 16, 
             "next_speaker_proba": 0.05, 
@@ -441,8 +467,8 @@ if __name__ == "__main__":
                 "silent_proba": 0.2,
             }, 
             "overlap": {
-                "overlap_proba": 0.2, 
-                "overlap_length": 2, 
+                "overlap_proba": 0.3, 
+                "overlap_length": 3, 
             }, 
             "bn_path": "/home/kamil/datasets/wham_noise/wham_noise/tr",
             "ir_path": "/home/kamil/datasets/MIT-ir-survey",
@@ -455,4 +481,4 @@ if __name__ == "__main__":
        config, 
     ).create_spd_dataset()
 
-    synthetic_dataset.push_to_hub("kamilakesbi/synthetic_dataset_jpn")
+    synthetic_dataset.push_to_hub("kamilakesbi/synthetic_dataset_jpn_2")
