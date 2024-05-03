@@ -270,15 +270,7 @@ class SyntheticDataset:
 
             segment_length = min(audio_file_length - start_index, len(audio_segment))
 
-            try: 
-                audio_file[start_index : start_index + segment_length] += audio_segment[:segment_length]
-            except: 
-                print('len audio segment: ', len(audio_segment))
-                print('len audio file here: ', audio_file[start_index : start_index + segment_length])
-                print("len audio file: ", len(audio_file))
-                print("start index", start_index)
-                print('segment_length', segment_length)
-                print("nb audio segments: ", len(audio_segments))
+            audio_file[start_index : start_index + segment_length] += audio_segment[:segment_length]
 
             file_timestamps_start.append(
                 [timestamps_start + start for timestamps_start in file_timestamps_start_vad[i]]
