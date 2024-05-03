@@ -26,7 +26,6 @@ class SyntheticDataset:
         config, 
     ) -> None:
 
-
         self.dataset_name = config['dataset']['dataset_name']
         self.subset = config['dataset']['subset']
         self.split = config['dataset']['split']
@@ -258,10 +257,9 @@ class SyntheticDataset:
         audio_file = np.zeros(int(audio_duration * self.sample_rate))
         audio_file_length = len(audio_file)
 
-        file_timestamps_start_long = []
-        file_timestamps_end_long = []
-        speakers_long = []
-        segments_durations_long = []
+        file_timestamps_start = []
+        file_timestamps_end = []
+        speakers = []
 
         for i, audio_segment in enumerate(audio_segments):
 
@@ -272,25 +270,32 @@ class SyntheticDataset:
 
             segment_length = min(audio_file_length - start_index, len(audio_segment))
 
-            audio_file[start_index : start_index + segment_length] += audio_segment[:segment_length]
+            try: 
+                audio_file[start_index : start_index + segment_length] += audio_segment[:segment_length]
+            except: 
+                print('len audio segment: ', len(audio_segment))
+                print('len audio file here: ', audio_file[start_index : start_index + segment_length])
+                print("len audio file: ", len(audio_file))
+                print("start index", start_index)
+                print('segment_length', segment_length)
+                print("nb audio segments: ", len(audio_segments))
 
-            file_timestamps_start_long.append(
+            file_timestamps_start.append(
                 [timestamps_start + start for timestamps_start in file_timestamps_start_vad[i]]
             )
-            file_timestamps_end_long.append([timestamps_end + start for timestamps_end in file_timestamps_end_vad[i]])
-            segments_durations_long.append(len(audio_segment) / self.sample_rate)
-            speakers_long.append(speakers_vad[i])
+            file_timestamps_end.append([timestamps_end + start for timestamps_end in file_timestamps_end_vad[i]])
+            speakers.append(speakers_vad[i])
 
             end = start + len(audio_segment) / self.sample_rate
 
             if np.random.rand() < self.overlap_proba:
-                start = end + np.random.rayleigh(0.002) - 0.002 - self.overlap_length * np.random.rand()
+                start = max(0, end + np.random.rayleigh(0.002) - 0.002 - self.overlap_length * np.random.rand())
             else: 
-                start = end + np.random.rayleigh(0.002) - 0.002
+                start = max(0, end + np.random.rayleigh(0.002) - 0.002)
 
-        file_timestamps_start = list(chain.from_iterable(file_timestamps_start_long))
-        file_timestamps_end = list(chain.from_iterable(file_timestamps_end_long))
-        speakers = list(chain.from_iterable(speakers_long))
+        file_timestamps_start = list(chain.from_iterable(file_timestamps_start))
+        file_timestamps_end = list(chain.from_iterable(file_timestamps_end))
+        speakers = list(chain.from_iterable(speakers))
 
         file_timestamps_start = [
             min(timestamp_start, len(audio_file) / self.sample_rate) for timestamp_start in file_timestamps_start
@@ -391,15 +396,22 @@ class SyntheticDataset:
             # Do this to force all batches to have the same size when num_proc > 1:
             self.num_meetings = (self.num_meetings // self.num_proc) * self.num_proc
 
-        for _ in tqdm(range(self.num_meetings)):
+        # for _ in tqdm(range(self.num_meetings)):
 
-            meeting_samples = self.sample_meeting_segments()
-            audio_samples = concatenate_datasets([audio_samples, meeting_samples])
+        #     meeting_samples = self.sample_meeting_segments()
+        #     audio_samples = concatenate_datasets([audio_samples, meeting_samples])
+
+        # audio_samples.push_to_hub("kamilakesbi/audio_samples", private=True)
+
+        audio_samples = load_dataset("kamilakesbi/audio_samples", split='train')
+
+        print(len(audio_samples))
+        assert len(audio_samples) % (self.num_proc * self.segments_per_meeting) == 0
 
         final_dataset = audio_samples.map(
             lambda example: self.concatenate(example),
             batched=True,
-            batch_size=self.nb_speakers_from_dataset,
+            batch_size=self.segments_per_meeting,
             remove_columns=audio_samples.column_names,
             num_proc=self.num_proc,
         ).cast_column("audio", Audio(sampling_rate=self.sample_rate))
@@ -414,7 +426,6 @@ class SyntheticDataset:
 
 if __name__ == "__main__":
 
-
     config = {
         "dataset": {
             "dataset_name": "mozilla-foundation/common_voice_16_1", 
@@ -427,11 +438,11 @@ if __name__ == "__main__":
         }, 
         "meeting":{
             "nb_speakers_per_meeting": 3, 
-            "num_meetings": 800, 
-            "segments_per_meeting": 32, 
-            "next_speaker_proba": 0.1, 
-            "normalize": True, 
-            "augment": False, 
+            "num_meetings": 1600, 
+            "segments_per_meeting": 16, 
+            "next_speaker_proba": 0.05, 
+            "normalize": True,
+            "augment": False,
             "silence":{
                 "silent_regions": True,
                 "silent_duration": 5,
@@ -444,7 +455,7 @@ if __name__ == "__main__":
             "bn_path": "/home/kamil/datasets/wham_noise/wham_noise/tr",
             "ir_path": "/home/kamil/datasets/MIT-ir-survey",
             "sample_rate":16000,
-        }, 
+        },
         "num_proc": 24,
     }
 
@@ -452,4 +463,4 @@ if __name__ == "__main__":
        config, 
     ).create_spd_dataset()
 
-    synthetic_dataset.push_to_hub("kamilakesbi/synthetic_dataset_ja")
+    synthetic_dataset.push_to_hub("kamilakesbi/synthetic_dataset_jpn")
