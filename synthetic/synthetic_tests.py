@@ -108,10 +108,11 @@ class SyntheticDataset:
 
         batch_samples = Dataset.from_dict(
             {
-                "speakers": [],
-                "audio": [],
+                str(self.speaker_column_name): [], 
+                str(self.audio_column_name): []
             }
         )
+
 
         # Sample speakers in meeting:
         self.sampled_speakers = random.sample(self.speakers_to_sample_from, self.nb_speakers_per_meeting)
@@ -120,18 +121,25 @@ class SyntheticDataset:
         self.audio_pool = {key: self.per_speaker_dataset[key].shuffle() for key in self.sampled_speakers}
 
         self.current_speaker = self.sampled_speakers[0]
+
+        current_dataset_index = {speaker: 0 for speaker in self.sampled_speakers}
+
         sample = self.audio_pool[self.current_speaker].select(range(1))
 
         for _ in range(self.segments_per_meeting):
 
             # Remove already used samples from the pool of candidates:
-            self.audio_pool[self.current_speaker] = self.audio_pool[self.current_speaker].select(
-                (i for i in range(1, len(self.audio_pool[self.current_speaker])))
+            sample = self.audio_pool[str(self.current_speaker)].select(
+                range(
+                    current_dataset_index[self.current_speaker],
+                    current_dataset_index[self.current_speaker]+1
+                )
             )
+            current_dataset_index[self.current_speaker] += 1
 
             batch_samples = concatenate_datasets([batch_samples, sample])
 
-            # Update current speaker: 
+            # Update current speaker:
             self.current_speaker = self.sample_next_speaker()
 
             # Sample an audio segment from current speaker:
@@ -474,7 +482,7 @@ if __name__ == "__main__":
             "ir_path": "/home/kamil/datasets/MIT-ir-survey",
             "sample_rate":16000,
         },
-        "num_proc": 24,
+        "num_proc": 1,
     }
 
     synthetic_dataset = SyntheticDataset(
