@@ -11,9 +11,8 @@ from audiomentations import AddBackgroundNoise, AddGaussianSNR, ApplyImpulseResp
 from datasets import Audio, Dataset, concatenate_datasets, load_dataset
 import copy
 from tqdm import tqdm
-
-# from denoiser import pretrained
-# from denoiser.dsp import convert_audio
+from denoiser import pretrained
+from denoiser.dsp import convert_audio
 
 torch.multiprocessing.set_start_method("spawn")
 
@@ -54,21 +53,32 @@ class SyntheticDataset:
 
         self.overlap_proba = config['meeting']['overlap']['overlap_proba']
         self.overlap_length = config['meeting']['overlap']['overlap_length']
+        self.denoise = config['meeting']['denoise']
 
         dataset = load_dataset(str(self.dataset_name), str(self.split))
         self.dataset = dataset[str(self.subset)].select_columns([str(self.speaker_column_name), str(self.audio_column_name)])
 
-        nb_speaker_appearance = self.dataset.to_pandas()[str(self.speaker_column_name)].value_counts()
-        # Sample only from speakers with more than 10 samples:
-        self.speakers_to_sample_from = list(nb_speaker_appearance[nb_speaker_appearance > self.min_samples_per_speaker].keys())[:self.nb_speakers_from_dataset]
+        speaker_appearance_count = self.dataset.to_pandas()[str(self.speaker_column_name)].value_counts()
 
+        # Sample only from speakers with more than 10 samples:
+        self.speakers_to_sample_from = list(speaker_appearance_count[speaker_appearance_count > self.min_samples_per_speaker].keys())[:self.nb_speakers_from_dataset]
+        
         print('nb speakers in dataset to keep:', len(self.speakers_to_sample_from))
-        # Generate the datasets associated to each speakers: 
-        self.per_speaker_dataset = {}
-        for speaker in tqdm(self.speakers_to_sample_from):
-            self.per_speaker_dataset[str(speaker)] = self.dataset.filter(
-                lambda x: x in speaker, input_columns=[str(self.speaker_column_name)], num_proc=self.num_proc
-            )
+        # Generate the dataset to sample from: 
+        
+        self.per_speaker_dataset = self.dataset.filter(lambda x: x in self.speakers_to_sample_from, input_columns=[str(self.speaker_column_name)], num_proc=self.num_proc)
+        
+        self.speaker_indexes_in_dataset = {}
+        self.speakers_to_sample_from.sort()
+        self.per_speaker_dataset = self.per_speaker_dataset.sort("client_id")
+        speaker_appearance_count = dict(speaker_appearance_count)
+        index = 0
+        for speaker in tqdm(self.speakers_to_sample_from): 
+            self.speaker_indexes_in_dataset[str(speaker)] = list(range(index, index+speaker_appearance_count[str(speaker)]))
+            index = index + speaker_appearance_count[str(speaker)] 
+        
+        # if self.denoise:
+        #     self.denoiser = pretrained.dns64().cuda()
 
         torch.set_num_threads(1)
         torch.hub._validate_not_a_forked_repo = lambda a, b, c: True
@@ -76,21 +86,21 @@ class SyntheticDataset:
         self.vad_model = vad_model
         self.get_speech_timestamps = utils[0]
 
-        if self.augment:
-            self.bn_path = "/home/kamil/datasets/MIT-ir-survey"
-            self.ir_path = "/home/kamil/datasets/wham_noise/wham_noise/tr"
+        # if self.augment:
+        #     self.bn_path = "/home/kamil/datasets/MIT-ir-survey"
+        #     self.ir_path = "/home/kamil/datasets/wham_noise/wham_noise/tr"
 
-            self.augmentation_pipeline = Compose(
-                [
-                    ApplyImpulseResponse(self.ir_path, p=0.3),
-                    AddBackgroundNoise(self.bn_path, 20, 60, p=0.3),
-                    AddGaussianSNR(
-                        min_snr_db=30.0,
-                        max_snr_db=50.0,
-                        p=0.1,
-                    ),
-                ]
-            )
+        #     self.augmentation_pipeline = Compose(
+        #         [
+        #             ApplyImpulseResponse(self.ir_path, p=0.3),
+        #             AddBackgroundNoise(self.bn_path, 20, 60, p=0.3),
+        #             AddGaussianSNR(
+        #                 min_snr_db=30.0,
+        #                 max_snr_db=50.0,
+        #                 p=0.1,
+        #             ),
+        #         ]
+        #     )
 
     def sample_next_speaker(self):
 
@@ -113,40 +123,22 @@ class SyntheticDataset:
             }
         )
 
-
         # Sample speakers in meeting:
         self.sampled_speakers = random.sample(self.speakers_to_sample_from, self.nb_speakers_per_meeting)
-
-        # Generate the pool of audios associated to the sampled speakers:
-        self.audio_pool = {key: self.per_speaker_dataset[key].shuffle() for key in self.sampled_speakers}
+        self.audio_index_pool = {speaker: self.speaker_indexes_in_dataset[speaker].copy() for speaker in self.sampled_speakers} 
 
         self.current_speaker = self.sampled_speakers[0]
 
-        current_dataset_index = {speaker: 0 for speaker in self.sampled_speakers}
-
-        sample = self.audio_pool[self.current_speaker].select(range(1))
-
+        indexes = []
         for _ in range(self.segments_per_meeting):
 
-            # Remove already used samples from the pool of candidates:
-            sample = self.audio_pool[str(self.current_speaker)].select(
-                range(
-                    current_dataset_index[self.current_speaker],
-                    current_dataset_index[self.current_speaker]+1
-                )
-            )
-            current_dataset_index[self.current_speaker] += 1
-
-            batch_samples = concatenate_datasets([batch_samples, sample])
-
-            # Update current speaker:
+            indexes.append(random.choice(self.audio_index_pool[self.current_speaker]))
+            self.audio_index_pool[self.current_speaker].remove(indexes[-1])
             self.current_speaker = self.sample_next_speaker()
 
-            # Sample an audio segment from current speaker:
-            sample = self.audio_pool[self.current_speaker].select(range(1))
+        batch_samples = self.per_speaker_dataset.select(indexes)
 
         assert len(batch_samples) == self.segments_per_meeting
-        del self.audio_pool
         
         return batch_samples
 
@@ -223,32 +215,32 @@ class SyntheticDataset:
 
         return (audio_segment, file_timestamps_start, file_timestamps_end, speakers)
     
-    # def denoise_audio(self, audio_file):
-    #     """_summary_
+    def denoise_audio(self, audio_file):
+        """_summary_
 
-    #     Args:
-    #         audio_file (_type_): _description_
+        Args:
+            audio_file (_type_): _description_
 
-    #     Returns:
-    #         _type_: _description_
-    #     """
+        Returns:
+            _type_: _description_
+        """
 
-    #     audio_file_converted = convert_audio(
-    #         torch.tensor(audio_file).unsqueeze(0).cuda(),
-    #         self.sample_rate,
-    #         self.denoiser.sample_rate,
-    #         self.denoiser.chin,
-    #     )
-    #     with torch.no_grad():
-    #         audio_file = (
-    #             self.denoiser(torch.tensor(audio_file_converted, dtype=torch.float32))[
-    #                 0
-    #             ]
-    #             .squeeze(0)
-    #             .cpu()
-    #             .numpy()
-    #         )
-    #     return audio_file
+        audio_file_converted = convert_audio(
+            torch.tensor(audio_file).unsqueeze(0).cuda(),
+            self.sample_rate,
+            self.denoiser.sample_rate,
+            self.denoiser.chin,
+        )
+        with torch.no_grad():
+            audio_file = (
+                self.denoiser(torch.tensor(audio_file_converted, dtype=torch.float32))[
+                    0
+                ]
+                .squeeze(0)
+                .cpu()
+                .numpy()
+            )
+        return audio_file
 
     def add_silent_regions(
         self,
@@ -439,6 +431,7 @@ class SyntheticDataset:
             batched=True,
             batch_size=self.segments_per_meeting,
             remove_columns=audio_samples.column_names,
+            with_rank=True if torch.cuda.device_count()>0 else False,
             num_proc=self.num_proc,
         ).cast_column("audio", Audio(sampling_rate=self.sample_rate))
 
@@ -469,6 +462,7 @@ if __name__ == "__main__":
             "next_speaker_proba": 0.05, 
             "normalize": True,
             "augment": False,
+            "denoise": False, 
             "silence":{
                 "silent_regions": True,
                 "silent_duration": 5,
@@ -482,7 +476,7 @@ if __name__ == "__main__":
             "ir_path": "/home/kamil/datasets/MIT-ir-survey",
             "sample_rate":16000,
         },
-        "num_proc": 1,
+        "num_proc": 8,
     }
 
     synthetic_dataset = SyntheticDataset(
