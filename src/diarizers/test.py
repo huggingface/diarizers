@@ -28,6 +28,7 @@ from pyannote.audio.pipelines.utils import get_devices
 from pyannote.audio.torchmetrics import (DiarizationErrorRate, FalseAlarmRate,
                                          MissedDetectionRate,
                                          SpeakerConfusionRate)
+from pyannote.metrics import diarization
 from pyannote.core import SlidingWindow, SlidingWindowFeature
 from tqdm import tqdm
 
@@ -57,7 +58,7 @@ class Test:
         ).shape
         # compute frame resolution:
         self.resolution = self.inference.duration / self.num_frames
-
+        
         self.metrics = {
             "der": DiarizationErrorRate(0.5).to(self.device),
             "confusion": SpeakerConfusionRate(0.5).to(self.device),
@@ -164,4 +165,106 @@ class Test:
             "false_alarm": self.metrics["false_alarm"].compute(),
             "missed_detection": self.metrics["missed_detection"].compute(),
             "confusion": self.metrics["confusion"].compute(),
+        }
+
+
+
+class TestPipeline(): 
+
+    def __init__(self, test_dataset, pipeline) -> None:
+        
+        self.test_dataset = test_dataset
+
+        (self.device,) = get_devices(needs=1)
+        self.pipeline = pipeline.to(self.device)
+        self.sample_rate = test_dataset[0]["audio"]["sampling_rate"]
+
+        # Get the number of frames associated to a chunk:
+        _, self.num_frames, _ = self.pipeline._segmentation.model(
+            torch.rand((1, int(self.pipeline._segmentation.duration * self.sample_rate))).to(self.device)
+        ).shape
+        # compute frame resolution:
+        self.resolution = self.pipeline._segmentation.duration / self.num_frames
+
+        self.metrics = {
+            "der": diarization.DiarizationErrorRate(),
+        }
+    
+    def compute_gt(self, file):
+
+        """
+        Args:
+            file (_type_): dataset row.
+
+        Returns:
+            gt: numpy array with shape (num_frames, num_speakers). 
+        """
+
+        audio = torch.tensor(file["audio"]["array"]).unsqueeze(0).to(torch.float32)
+        sample_rate = file["audio"]["sampling_rate"]
+
+        audio_duration = len(audio[0]) / sample_rate
+        num_frames = int(round(audio_duration / self.resolution))
+
+        labels = list(set(file["speakers"]))
+
+        gt = np.zeros((num_frames, len(labels)), dtype=np.uint8)
+
+        for i in range(len(file["timestamps_start"])):
+            start = file["timestamps_start"][i]
+            end = file["timestamps_end"][i]
+            speaker = file["speakers"][i]
+            start_frame = int(round(start / self.resolution))
+            end_frame = int(round(end / self.resolution))
+            speaker_index = labels.index(speaker)
+
+            gt[start_frame:end_frame, speaker_index] += 1
+
+        return gt
+
+    def predict(self, file): 
+
+        sample = {}
+        sample["waveform"] = torch.from_numpy(file['audio']["array"]).to(self.device, dtype=self.pipeline._segmentation.model.dtype).unsqueeze(0)
+        sample["sample_rate"] = file['audio']['sampling_rate']
+
+        prediction = self.pipeline(sample)
+
+        return prediction
+        
+    def compute_metrics_on_file(self, file):
+
+        pred = self.predict(file)
+        gt = self.compute_gt(file)
+
+        sliding_window = SlidingWindow(start=0, step=self.resolution, duration=self.resolution)        
+        gt = SlidingWindowFeature(data=gt, sliding_window=sliding_window)
+
+        gt = self.pipeline.to_annotation(
+            gt,
+            min_duration_on=0.0,
+            min_duration_off=self.pipeline.segmentation.min_duration_off,
+        )
+
+        mapping = {
+                label: expected_label
+                for label, expected_label in zip(gt.labels(), self.pipeline.classes())
+            }
+        
+        gt = gt.rename_labels(mapping=mapping)
+
+        der = self.metrics['der'](pred, gt)
+
+        return der         
+
+    def compute_metrics(self):
+
+        der = 0
+        for file in tqdm(self.test_dataset):
+            der += self.compute_metrics_on_file(file)
+            
+        der /= len(self.test_dataset)
+
+        return {
+            'der': der
         }
