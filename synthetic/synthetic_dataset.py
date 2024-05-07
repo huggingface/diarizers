@@ -9,12 +9,10 @@ import torchaudio.transforms as T
 from audiomentations import AddBackgroundNoise, AddGaussianSNR, ApplyImpulseResponse, Compose
 
 from datasets import Audio, Dataset, concatenate_datasets, load_dataset
-import copy
 from tqdm import tqdm
 from denoiser import pretrained
 from denoiser.dsp import convert_audio
 
-torch.multiprocessing.set_start_method("spawn")
 
 def pickle_model(model):
     if not os.path.exists("vad.pt"):
@@ -60,7 +58,7 @@ class SyntheticDataset:
 
         speaker_appearance_count = self.dataset.to_pandas()[str(self.speaker_column_name)].value_counts()
 
-        # Sample only from speakers with more than 10 samples:
+        # Sample only from speakers wixzth more than 10 samples:
         self.speakers_to_sample_from = list(speaker_appearance_count[speaker_appearance_count > self.min_samples_per_speaker].keys())[:self.nb_speakers_from_dataset]
         
         print('nb speakers in dataset to keep:', len(self.speakers_to_sample_from))
@@ -77,8 +75,8 @@ class SyntheticDataset:
             self.speaker_indexes_in_dataset[str(speaker)] = list(range(index, index+speaker_appearance_count[str(speaker)]))
             index = index + speaker_appearance_count[str(speaker)] 
         
-        # if self.denoise:
-        #     self.denoiser = pretrained.dns64().cuda()
+        if self.denoise:
+            self.denoiser = pretrained.dns64()
 
         torch.set_num_threads(1)
         torch.hub._validate_not_a_forked_repo = lambda a, b, c: True
@@ -86,21 +84,21 @@ class SyntheticDataset:
         self.vad_model = vad_model
         self.get_speech_timestamps = utils[0]
 
-        # if self.augment:
-        #     self.bn_path = "/home/kamil/datasets/MIT-ir-survey"
-        #     self.ir_path = "/home/kamil/datasets/wham_noise/wham_noise/tr"
+        if self.augment:
+            self.bn_path = "/home/kamil/datasets/wham_noise/wham_noise/tr"
+            self.ir_path = "/home/kamil/datasets/MIT-ir-survey"
 
-        #     self.augmentation_pipeline = Compose(
-        #         [
-        #             ApplyImpulseResponse(self.ir_path, p=0.3),
-        #             AddBackgroundNoise(self.bn_path, 20, 60, p=0.3),
-        #             AddGaussianSNR(
-        #                 min_snr_db=30.0,
-        #                 max_snr_db=50.0,
-        #                 p=0.1,
-        #             ),
-        #         ]
-        #     )
+            self.augmentation_pipeline = Compose(
+                [
+                    ApplyImpulseResponse(self.ir_path, p=0.4),
+                    AddBackgroundNoise(self.bn_path, 10, 60, p=0.4),
+                    AddGaussianSNR(
+                        min_snr_db=30.0,
+                        max_snr_db=50.0,
+                        p=0.1,
+                    ),
+                ]
+            )
 
     def sample_next_speaker(self):
 
@@ -215,7 +213,7 @@ class SyntheticDataset:
 
         return (audio_segment, file_timestamps_start, file_timestamps_end, speakers)
     
-    def denoise_audio(self, audio_file):
+    def denoise_audio(self, audio_file, rank=None):
         """_summary_
 
         Args:
@@ -225,8 +223,11 @@ class SyntheticDataset:
             _type_: _description_
         """
 
+        device = f"cuda:{(rank or 0)% torch.cuda.device_count()}"
+        self.denoiser = self.denoiser.to(device)
+
         audio_file_converted = convert_audio(
-            torch.tensor(audio_file).unsqueeze(0).cuda(),
+            torch.tensor(audio_file).unsqueeze(0).to(device),
             self.sample_rate,
             self.denoiser.sample_rate,
             self.denoiser.chin,
@@ -294,6 +295,7 @@ class SyntheticDataset:
         file_timestamps_end = []
         speakers = []
 
+        is_overlap = False
         for i, audio_segment in enumerate(audio_segments):
 
             start_index = int(start * self.sample_rate)
@@ -313,10 +315,12 @@ class SyntheticDataset:
 
             end = start + len(audio_segment) / self.sample_rate
 
-            if np.random.rand() < self.overlap_proba:
+            if np.random.rand() < self.overlap_proba and not is_overlap: 
                 start = max(0, end + np.random.rayleigh(0.002) - 0.002 - self.overlap_length * np.random.rand())
+                is_overlap = True # We add this to make sure we don't overlap multiple successive samples
             else: 
                 start = max(0, end + np.random.rayleigh(0.002) - 0.002)
+                is_overlap = False
 
         file_timestamps_start = list(chain.from_iterable(file_timestamps_start))
         file_timestamps_end = list(chain.from_iterable(file_timestamps_end))
@@ -334,6 +338,7 @@ class SyntheticDataset:
     def concatenate(
         self,
         files,
+        rank, 
     ):
         """_summary_
 
@@ -367,8 +372,8 @@ class SyntheticDataset:
             resample = T.Resample(sr, self.sample_rate)
             audio_segment = resample(torch.tensor(audio_segment, dtype=torch.float32)).cpu().numpy()
 
-            if self.normalize:
-                audio_segment = self.normalize_audio(audio_segment)
+            # if self.normalize:
+            #     audio_segment = self.normalize_audio(audio_segment)
 
             (audio_segment, timestamps_start_vad, timestamps_end_vad, speakers_vad) = self.refine_timestamps(
                 audio_segment,
@@ -389,6 +394,9 @@ class SyntheticDataset:
                 file_timestamps_start,
                 file_timestamps_end,
             ) = self.add_silent_regions(audio_file, file_timestamps_start, file_timestamps_end)
+
+        if self.denoise:
+            audio_file = self.denoise_audio(audio_file, rank=rank)
 
         if self.augment:
             audio_file = self.augment_audio(audio_file)
@@ -412,6 +420,8 @@ class SyntheticDataset:
         self,
     ):
 
+        if self.denoise: 
+            self.num_proc = torch.cuda.device_count() if torch.cuda.device_count()>0 else self.num_proc
         if self.num_proc > 1:
             copyreg.pickle(type(self.vad_model), pickle_model)
 
@@ -427,7 +437,7 @@ class SyntheticDataset:
             audio_samples = concatenate_datasets([audio_samples, meeting_samples])
 
         final_dataset = audio_samples.map(
-            lambda example: self.concatenate(example),
+            self.concatenate,
             batched=True,
             batch_size=self.segments_per_meeting,
             remove_columns=audio_samples.column_names,
@@ -445,42 +455,44 @@ class SyntheticDataset:
 
 if __name__ == "__main__":
 
+    torch.multiprocessing.set_start_method("spawn")
+
     config = {
         "dataset": {
             "dataset_name": "mozilla-foundation/common_voice_16_1", 
             "split": "ja", 
             "subset": 'train', 
-            "speaker_column_name": "client_id", 
+            "speaker_column_name": "client_id",
             "audio_column_name": "audio",
-            "min_samples_per_speaker": 10, 
-            "nb_speakers_from_dataset": 100, 
-        }, 
+            "min_samples_per_speaker": 10,
+            "nb_speakers_from_dataset": 500,
+        },
         "meeting":{
             "nb_speakers_per_meeting": 2, 
             "num_meetings": 1600, 
             "segments_per_meeting": 16, 
-            "next_speaker_proba": 0.05, 
+            "next_speaker_proba": 0, 
             "normalize": True,
             "augment": False,
             "denoise": False, 
             "silence":{
                 "silent_regions": True,
                 "silent_duration": 5,
-                "silent_proba": 0.2,
-            }, 
+                "silent_proba": 0.5,
+            },
             "overlap": {
-                "overlap_proba": 0.3, 
-                "overlap_length": 3, 
-            }, 
+                "overlap_proba": 0.4,
+                "overlap_length": 3,
+            },
             "bn_path": "/home/kamil/datasets/wham_noise/wham_noise/tr",
             "ir_path": "/home/kamil/datasets/MIT-ir-survey",
             "sample_rate":16000,
         },
-        "num_proc": 8,
+        "num_proc": 24,
     }
 
     synthetic_dataset = SyntheticDataset(
-       config, 
+       config,
     ).create_spd_dataset()
 
-    synthetic_dataset.push_to_hub("kamilakesbi/synthetic_dataset_jpn_2")
+    synthetic_dataset.push_to_hub("kamilakesbi/synthetic_dataset_jpn_no_norm")
