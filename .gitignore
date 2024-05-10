@@ -11,5 +11,4 @@ diarizers.egg-info
 wandb
 
 runs.md
-train_exps.py
-test
+synthetic/synthetic_dataset.py

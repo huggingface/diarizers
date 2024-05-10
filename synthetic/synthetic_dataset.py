@@ -68,9 +68,9 @@ class SyntheticDataset:
         self.per_speaker_dataset = self.dataset.filter(lambda x: x in self.speakers_to_sample_from, input_columns=[str(self.speaker_column_name)], num_proc=self.num_proc)
         
         self.speaker_indexes_in_dataset = {}
-        print('ok')
+
         self.speakers_to_sample_from.sort()
-        print('ok')
+
         self.per_speaker_dataset = self.per_speaker_dataset.sort("client_id")
         speaker_appearance_count = dict(speaker_appearance_count)
         index = 0
