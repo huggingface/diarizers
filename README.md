@@ -105,7 +105,8 @@ python3 test_segmentation.py \
     --split_on_subset=data \
     --test_split_name=test \
     --model_name_or_path=diarizers-community/speaker-segmentation-fine-tuned-callhome-jpn \
-    --preprocessing_num_workers=2
+    --preprocessing_num_workers=2 \
+    --evaluate_with_pipeline \
 ``` 
 
 ## Inference with pyannote
