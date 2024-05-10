@@ -1,11 +1,12 @@
 import os
 
-from pyannote.audio import Model
+from pyannote.audio import Model, Pipeline
 from datasets import load_dataset, DatasetDict
-from diarizers import SegmentationModel, Test
+from diarizers import SegmentationModel, Test, TestPipeline
 from dataclasses import dataclass, field
 from transformers import HfArgumentParser
 from typing import Optional
+import torch
 
 @dataclass
 class DataTrainingArguments:
@@ -18,7 +19,7 @@ class DataTrainingArguments:
     """
 
     dataset_name: str = field(
-        default=None, 
+        default=None,
         metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
     )
     dataset_config_name: str = field(
@@ -54,13 +55,24 @@ class ModelArguments:
         metadata={"help": "Where do you want to store the pretrained models downloaded from huggingface.co"},
     )
 
+@dataclass
+class EvaluateArguments:
+    """
+    Arguments to .
+    """
+
+    evaluate_with_pipeline: bool = field(
+        default=False, 
+        metadata={"help": "Compute metrics using the full speaker diarization pipeline with modified speaker segmentation model"}
+    )
+
 
 if __name__ == "__main__":
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
-    parser = HfArgumentParser((DataTrainingArguments, ModelArguments))
-    data_args, model_args = parser.parse_args_into_dataclasses()
+    parser = HfArgumentParser((DataTrainingArguments, ModelArguments, EvaluateArguments))
+    data_args, model_args, evaluate_args = parser.parse_args_into_dataclasses()
 
     # Load the Dataset:
     if str(data_args.dataset_config_name): 
@@ -75,7 +87,7 @@ if __name__ == "__main__":
             str(data_args.dataset_config_name), 
             num_proc=int(data_args.preprocessing_num_workers)
     )
-    
+           
     test_split_name = data_args.test_split_name
 
     # Split in Train-Val-Test and use Test Subset:
@@ -96,10 +108,10 @@ if __name__ == "__main__":
     # Load the Pretrained or Fine-Tuned segmentation model:
     if model_args.model_name_or_path == "pyannote/segmentation-3.0": 
         model = Model.from_pretrained(model_args.model_name_or_path, use_auth_token=True)
-    else: 
+    else:
         model = SegmentationModel().from_pretrained(
             model_args.model_name_or_path,
-            cache_dir=model_args.cache_dir,  
+            cache_dir=model_args.cache_dir,
             use_auth_token=True
         )
         model = model.to_pyannote_model()
@@ -108,3 +120,11 @@ if __name__ == "__main__":
     test = Test(test_dataset, model, step=2.5)
     metrics = test.compute_metrics()
     print(metrics)
+
+    # Pipeline:
+    if evaluate_args.evaluate_with_pipeline:
+        pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1")
+        pipeline._segmentation.model = model
+
+        pipeline_metrics = TestPipeline(test_dataset, pipeline).compute_metrics()
+        print(pipeline_metrics)
