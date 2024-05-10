@@ -9,6 +9,5 @@ build
 checkpoint
 diarizers.egg-info
 wandb
-
-runs.md
 synthetic/synthetic_dataset.py
+runs.md

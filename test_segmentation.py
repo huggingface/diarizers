@@ -68,7 +68,7 @@ class EvaluateArguments:
 
 if __name__ == "__main__":
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
     parser = HfArgumentParser((DataTrainingArguments, ModelArguments, EvaluateArguments))
     data_args, model_args, evaluate_args = parser.parse_args_into_dataclasses()
