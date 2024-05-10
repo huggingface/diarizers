@@ -18,7 +18,7 @@ class DataTrainingArguments:
     """
 
     dataset_name: str = field(
-        default=None, 
+        default=None,
         metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
     )
     dataset_config_name: str = field(
@@ -32,7 +32,7 @@ class DataTrainingArguments:
     eval_split_name: str = field(
         default="validation", metadata={"help": "The name of the training data set split to use (via the datasets library). Defaults to 'val'"}
     )
-    
+
     split_on_subset: str = field(
         default=None,
         metadata={"help": "Automatically splits the dataset into train-val-set on a specified subset. Defaults to 'None'"},
@@ -61,7 +61,7 @@ class ModelArguments:
 
 if __name__ == "__main__":
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
     parser = HfArgumentParser((DataTrainingArguments, ModelArguments, TrainingArguments))
 

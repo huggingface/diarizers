@@ -6,7 +6,7 @@ from itertools import chain
 import numpy as np
 import torch
 import torchaudio.transforms as T
-from audiomentations import AddBackgroundNoise, AddGaussianSNR, ApplyImpulseResponse, Compose
+from audiomentations import AddBackgroundNoise, AddGaussianSNR, ApplyImpulseResponse, Compose, Gain
 
 from datasets import Audio, Dataset, concatenate_datasets, load_dataset
 from tqdm import tqdm
@@ -44,6 +44,7 @@ class SyntheticDataset:
 
         self.normalize = config['meeting']['normalize']
         self.augment = config['meeting']['augment']
+        self.random_volume = config['meeting']['random_volume']
 
         self.silent_regions = config['meeting']['silence']['silent_regions']
         self.silence_duration = config['meeting']['silence']['silent_duration']
@@ -67,7 +68,9 @@ class SyntheticDataset:
         self.per_speaker_dataset = self.dataset.filter(lambda x: x in self.speakers_to_sample_from, input_columns=[str(self.speaker_column_name)], num_proc=self.num_proc)
         
         self.speaker_indexes_in_dataset = {}
+        print('ok')
         self.speakers_to_sample_from.sort()
+        print('ok')
         self.per_speaker_dataset = self.per_speaker_dataset.sort("client_id")
         speaker_appearance_count = dict(speaker_appearance_count)
         index = 0
@@ -91,7 +94,7 @@ class SyntheticDataset:
             self.augmentation_pipeline = Compose(
                 [
                     ApplyImpulseResponse(self.ir_path, p=0.4),
-                    AddBackgroundNoise(self.bn_path, 10, 60, p=0.4),
+                    AddBackgroundNoise(self.bn_path, 5, 40, p=0.4),
                     AddGaussianSNR(
                         min_snr_db=30.0,
                         max_snr_db=50.0,
@@ -100,13 +103,22 @@ class SyntheticDataset:
                 ]
             )
 
+        if self.random_volume: 
+
+            self.apply_gain = Gain(
+                p=0.5, 
+                min_gain_db=-3, 
+                max_gain_db=3
+            )
+
     def sample_next_speaker(self):
 
         if random.random() < self.probability_same:
             self.current_speaker = self.current_speaker
         else:
             other_speakers = self.sampled_speakers.copy()
-            other_speakers.remove(self.current_speaker)
+            if self.current_speaker in other_speakers: 
+                other_speakers.remove(self.current_speaker)
             self.current_speaker = random.choice(other_speakers)
 
         return self.current_speaker
@@ -132,6 +144,11 @@ class SyntheticDataset:
 
             indexes.append(random.choice(self.audio_index_pool[self.current_speaker]))
             self.audio_index_pool[self.current_speaker].remove(indexes[-1])
+            
+            if len(self.audio_index_pool[self.current_speaker]) == 0:
+                del self.audio_index_pool[self.current_speaker]
+                self.sampled_speakers.remove(self.current_speaker)
+
             self.current_speaker = self.sample_next_speaker()
 
         batch_samples = self.per_speaker_dataset.select(indexes)
@@ -171,6 +188,12 @@ class SyntheticDataset:
         """
 
         return audio_segment / max(np.max(audio_segment), -np.min(audio_segment))
+
+    def add_gain(self, audio_segment): 
+
+        audio_segment = self.apply_gain(audio_segment, sample_rate=self.sample_rate)
+
+        return audio_segment
 
     def augment_audio(self, audio_file):
         """_summary_
@@ -372,8 +395,8 @@ class SyntheticDataset:
             resample = T.Resample(sr, self.sample_rate)
             audio_segment = resample(torch.tensor(audio_segment, dtype=torch.float32)).cpu().numpy()
 
-            # if self.normalize:
-            #     audio_segment = self.normalize_audio(audio_segment)
+            if self.random_volume:
+                audio_segment = self.add_gain(audio_segment)
 
             (audio_segment, timestamps_start_vad, timestamps_end_vad, speakers_vad) = self.refine_timestamps(
                 audio_segment,
@@ -460,33 +483,34 @@ if __name__ == "__main__":
     config = {
         "dataset": {
             "dataset_name": "mozilla-foundation/common_voice_16_1", 
-            "split": "ja", 
-            "subset": 'train', 
+            "split": "ja",
+            "subset": 'other',
             "speaker_column_name": "client_id",
             "audio_column_name": "audio",
             "min_samples_per_speaker": 10,
-            "nb_speakers_from_dataset": 500,
+            "nb_speakers_from_dataset": 1000,
         },
         "meeting":{
-            "nb_speakers_per_meeting": 2, 
-            "num_meetings": 1600, 
-            "segments_per_meeting": 16, 
-            "next_speaker_proba": 0, 
+            "nb_speakers_per_meeting": 2,
+            "num_meetings": 3200,
+            "segments_per_meeting": 16,
+            "next_speaker_proba": 0,
+            "random_volume": False,
             "normalize": True,
-            "augment": False,
-            "denoise": False, 
+            "augment": True,
+            "denoise": False,
             "silence":{
                 "silent_regions": True,
                 "silent_duration": 5,
                 "silent_proba": 0.5,
             },
             "overlap": {
-                "overlap_proba": 0.4,
+                "overlap_proba": 0.3,
                 "overlap_length": 3,
             },
             "bn_path": "/home/kamil/datasets/wham_noise/wham_noise/tr",
             "ir_path": "/home/kamil/datasets/MIT-ir-survey",
-            "sample_rate":16000,
+            "sample_rate": 16000,
         },
         "num_proc": 24,
     }
@@ -495,4 +519,4 @@ if __name__ == "__main__":
        config,
     ).create_spd_dataset()
 
-    synthetic_dataset.push_to_hub("kamilakesbi/synthetic_dataset_jpn_no_norm")
+    synthetic_dataset.push_to_hub("kamilakesbi/synthetic_dataset_jpn_2_big")

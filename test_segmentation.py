@@ -6,7 +6,6 @@ from diarizers import SegmentationModel, Test, TestPipeline
 from dataclasses import dataclass, field
 from transformers import HfArgumentParser
 from typing import Optional
-import torch
 
 @dataclass
 class DataTrainingArguments:

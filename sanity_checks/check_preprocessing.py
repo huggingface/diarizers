@@ -15,15 +15,15 @@ def get_chunk_from_pyannote(pyannote_task, file_id, start_time, duration):
     Args:
         pyannote_task (pyannote.audio.tasks.segmentation.speaker_diarization.SpeakerDiarization): 
             pyannote SpeakerDiarization task object, with AMI__SpeakerDiarization__only_words as protocol.
-        file_id (int): ID of the AMI dataset file. 
+        file_id (int): ID of the AMI dataset file.
         start_time (float): chunk start time.
-        duration (float): chunk duration. 
+        duration (float): chunk duration.
 
     Returns:
         chunk: dict containing: 
             'X': waveform tensor
             'y': pyannote SlidingWindowFeature with the target
-            'meta': dict with metadata. 
+            'meta': dict with metadata.
     """
 
     pyannote_task.prepare_data()
@@ -64,11 +64,11 @@ def test_pyannote_diarizers_preprocessing_equivalence(path_to_ami):
     # Select the first example (= meeting IS1002c), preprocess it and extract the first chunk:
     ami_hub_example = ami_dataset_hub['train'].select(range(1))
     ami_hub_example = ami_hub_example.map(
-        lambda file: preprocessor(file, random=False, overlap=0.0), 
-        num_proc=1, 
+        lambda file: preprocessor(file, random=False, overlap=0.0),
+        num_proc=1,
         remove_columns=ami_hub_example.column_names,
-        batched=True, 
-        batch_size=1, 
+        batched=True,
+        batch_size=1,
         keep_in_memory=True
     )[0]
 
@@ -76,19 +76,19 @@ def test_pyannote_diarizers_preprocessing_equivalence(path_to_ami):
     waveform_hub = np.array(ami_hub_example["waveforms"])
     labels_hub = np.array(ami_hub_example["labels"])
 
-    labels_paynnote = ami_pyannote_example["y"].data
+    labels_pyannote = ami_pyannote_example["y"].data
     waveform_pyannote = np.array(ami_pyannote_example["X"][0])
 
     similarity = cosine_similarity([waveform_hub], [waveform_pyannote])
 
-    assert (labels_hub == labels_paynnote).all(), "labels are not matching"
+    assert (labels_hub == labels_pyannote).all(), "labels are not matching"
     assert similarity > 0.95
 
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    
+
     parser.add_argument("--path_to_ami", help='Specify path to the pyannote AMI dataset', required=True)
     args = parser.parse_args()
 
