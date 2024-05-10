@@ -71,7 +71,7 @@ python3 train_segmentation.py \
 ```
 
 On a single NVIDIA RTX 24GB GPU, training takes approximately 5 minutes and improves the diarization error rate (DER) 
-from 32% to 23%, representing a 28% relative improvement in performance. The final model will be pushed to the Hugging Face
+from 25% to 18%, representing a 28% relative improvement in performance. The final model will be pushed to the Hugging Face
 Hub, for example the checkpoint [diarizers-community/speaker-segmentation-fine-tuned-callhome-jpn](https://huggingface.co/diarizers-community/speaker-segmentation-fine-tuned-callhome-jpn).
 
 We encourage you to swap the CallHome Japanese dataset for a dataset in your language of choice. The [CallHome dataset](https://huggingface.co/datasets/diarizers-community/callhome)
