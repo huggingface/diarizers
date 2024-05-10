@@ -116,12 +116,14 @@ if __name__ == "__main__":
         model = model.to_pyannote_model()
 
     # Test and Print Metrics:
+    print('Segmentation Model evaluation: ')
     test = Test(test_dataset, model, step=2.5)
     metrics = test.compute_metrics()
     print(metrics)
 
     # Pipeline:
     if evaluate_args.evaluate_with_pipeline:
+        print('Speaker diarization pipeline (with fine-tuned segmentation model) evaluation:')
         pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1")
         pipeline._segmentation.model = model
 
