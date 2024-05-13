@@ -56,10 +56,10 @@ class Preprocess:
         self.warm_up = config.warm_up
 
         self.sample_rate = config.sample_rate
-        model = SegmentationModel(config).to_pyannote_model()
+        self.model = SegmentationModel(config).to_pyannote_model()
 
         # Get the number of frames associated to a chunk:
-        _, self.num_frames_per_chunk, _ = model(torch.rand((1, int(self.chunk_duration * self.sample_rate)))).shape
+        _, self.num_frames_per_chunk, _ = self.model(torch.rand((1, int(self.chunk_duration * self.sample_rate)))).shape
 
     def get_labels_in_file(self, file):
         """Get speakers in file.
@@ -133,13 +133,21 @@ class Preprocess:
         chunk_segments = file_segments[(file_segments["start"] < end_time) & (file_segments["end"] > start_time)]
 
         # compute frame resolution:
-        resolution = self.chunk_duration / self.num_frames_per_chunk
+        # resolution = self.chunk_duration / self.num_frames_per_chunk
 
         # discretize chunk annotations at model output resolution
-        start = np.maximum(chunk_segments["start"], start_time) - start_time
-        start_idx = np.floor(start / resolution).astype(int)
-        end = np.minimum(chunk_segments["end"], end_time) - start_time
-        end_idx = np.ceil(end / resolution).astype(int)
+        step = self.model.receptive_field.step
+        half = 0.5 * self.model.receptive_field.duration
+
+        # discretize chunk annotations at model output resolution
+        start = np.maximum(chunk_segments["start"], start_time) - start_time - half
+        start_idx = np.maximum(0, np.round(start / step)).astype(int)
+
+        # start_idx = np.floor(start / resolution).astype(int)
+        end = np.minimum(chunk_segments["end"], end_time) - start_time - half
+        end_idx = np.round(end / step).astype(int)
+
+        # end_idx = np.ceil(end / resolution).astype(int)
 
         # get list and number of labels for current scope
         labels = list(np.unique(chunk_segments["labels"]))
@@ -152,7 +160,7 @@ class Preprocess:
 
         for start, end, label in zip(start_idx, end_idx, chunk_segments["labels"]):
             mapped_label = mapping[label]
-            y[start:end, mapped_label] = 1
+            y[start:end+1, mapped_label] = 1
 
         return waveform, y, labels
 
