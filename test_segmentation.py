@@ -74,7 +74,7 @@ if __name__ == "__main__":
     data_args, model_args, evaluate_args = parser.parse_args_into_dataclasses()
 
     # Load the Dataset:
-    if str(data_args.dataset_config_name): 
+    if data_args.dataset_config_name: 
         dataset = load_dataset(
             str(data_args.dataset_name), 
             str(data_args.dataset_config_name), 
