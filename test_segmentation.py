@@ -83,7 +83,6 @@ if __name__ == "__main__":
     else: 
         dataset = load_dataset(
             str(data_args.dataset_name), 
-            str(data_args.dataset_config_name), 
             num_proc=int(data_args.preprocessing_num_workers)
     )
            
