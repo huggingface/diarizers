@@ -23,7 +23,7 @@
 
 import numpy as np
 
-from datasets import Audio, Dataset, DatasetDict
+from datasets import Audio, IterableDatasetDict, IterableDataset, DatasetDict
 
 
 def get_secs(x):
@@ -74,6 +74,7 @@ class SpeakerDiarizationDataset:
         self.sample_rate = sample_rate
         self.annotations_type = annotations_type
         self.crop_unannotated_regions = crop_unannotated_regions
+        self.spd_dataset = IterableDatasetDict()
 
     def crop_audio(self, files):
         # Load audio from path
@@ -172,36 +173,18 @@ class SpeakerDiarizationDataset:
         Returns:
             self.spd_dataset: HF dataset compatible with diarizers.
         """
-
-        self.spd_dataset = DatasetDict()
-
         for subset in self.audio_paths:
-            timestamps_start = []
-            timestamps_end = []
-            speakers = []
-
-            self.spd_dataset[str(subset)] = Dataset.from_dict({})
-
-            for annotations in self.annotations_paths[subset]:
-                if self.annotations_type == "rttm":
-                    timestamps_start_file, timestamps_end_file, speakers_file = self.process_rttm_file(annotations)
-                elif self.annotations_type == "cha":
-                    timestamps_start_file, timestamps_end_file, speakers_file = self.process_cha_file(annotations)
-
-                timestamps_start.append(timestamps_start_file)
-                timestamps_end.append(timestamps_end_file)
-                speakers.append(speakers_file)
-
-            self.spd_dataset[subset] = Dataset.from_dict(
-                {
-                    "audio": self.audio_paths[subset],
-                    "timestamps_start": timestamps_start,
-                    "timestamps_end": timestamps_end,
-                    "speakers": speakers,
+            self.spd_dataset[subset] = IterableDataset.from_generator(
+                iterable_dataset_generator,
+                gen_kwargs={
+                    'annotations_paths': self.annotations_paths[subset],
+                    'audio_paths': self.audio_paths[subset],
+                    'diarization_dataset_object': self
                 }
-            ).cast_column("audio", Audio(sampling_rate=self.sample_rate))
+            )
 
             if self.crop_unannotated_regions:
+                raise NotImplementedError
                 self.spd_dataset[subset] = (
                     self.spd_dataset[subset]
                     .map(
@@ -213,5 +196,27 @@ class SpeakerDiarizationDataset:
                     )
                     .cast_column("audio", Audio(sampling_rate=self.sample_rate))
                 )
+            # print(self.spd_dataset[subset].features)
+            # self.spd_dataset[subset] = self.spd_dataset.cast_column("audio", Audio(sampling_rate=self.sample_rate))
 
+            # print(self.spd_dataset[subset].features)
         return self.spd_dataset
+
+
+def iterable_dataset_generator(annotations_paths, audio_paths, diarization_dataset_object):
+    for annotation, audio in zip(annotations_paths, audio_paths):
+        if diarization_dataset_object.annotations_type == "rttm":
+            timestamps_start_file, timestamps_end_file, speakers_file = (
+                diarization_dataset_object.process_rttm_file(annotation))
+        elif diarization_dataset_object.annotations_type == "cha":
+            timestamps_start_file, timestamps_end_file, speakers_file = (
+                diarization_dataset_object.process_cha_file(annotation))
+        else:
+            raise ValueError("Unsupported annotations type")
+
+        yield {
+            "audio": audio,
+            "timestamps_start": timestamps_start_file,
+            "timestamps_end": timestamps_end_file,
+            "speakers": speakers_file,
+        }
