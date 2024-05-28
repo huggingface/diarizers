@@ -68,13 +68,13 @@ class EvaluateArguments:
 
 if __name__ == "__main__":
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1" 
 
     parser = HfArgumentParser((DataTrainingArguments, ModelArguments, EvaluateArguments))
     data_args, model_args, evaluate_args = parser.parse_args_into_dataclasses()
 
     # Load the Dataset:
-    if str(data_args.dataset_config_name): 
+    if data_args.dataset_config_name: 
         dataset = load_dataset(
             str(data_args.dataset_name), 
             str(data_args.dataset_config_name), 
@@ -83,10 +83,9 @@ if __name__ == "__main__":
     else: 
         dataset = load_dataset(
             str(data_args.dataset_name), 
-            str(data_args.dataset_config_name), 
             num_proc=int(data_args.preprocessing_num_workers)
     )
-           
+                 
     test_split_name = data_args.test_split_name
 
     # Split in Train-Val-Test and use Test Subset:
@@ -105,7 +104,7 @@ if __name__ == "__main__":
     test_dataset = dataset[data_args.test_split_name]
 
     # Load the Pretrained or Fine-Tuned segmentation model:
-    if model_args.model_name_or_path == "pyannote/segmentation-3.0": 
+    if model_args.model_name_or_path == "pyannote/segmentation-3.0":
         model = Model.from_pretrained(model_args.model_name_or_path, use_auth_token=True)
     else:
         model = SegmentationModel().from_pretrained(

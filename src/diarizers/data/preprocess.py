@@ -33,7 +33,6 @@ class Preprocess:
         - "audio": Audio feature.
         - "speakers": The list of audio speakers, with their order of appearance.
         - "timestamps_start": A list of timestamps indicating the start of each speaker segment.
-       flake8>=3.8.3
         - "timestamps_end": A list of timestamps indicating the end of each speaker segment.
     to a preprocessed dataset ready to be used with the HF Trainer.
     """
