@@ -26,48 +26,52 @@ class SyntheticDatasetConfig:
         min_samples_per_speaker: int = 10,
         nb_speakers_from_dataset: int = 20,
         sample_rate: int = 16000,
-        num_meetings: int = 200,   
+        num_meetings: int = 200,
         nb_speakers_per_meeting: int = 3, 
         segments_per_meeting: int = 16,
         normalize: bool = True,
         augment: bool = False,
         overlap_proba: float = 0.3,
         overlap_length: float = 3,
-        random_gain: bool = False,     
+        random_gain: bool = False,    
         add_silence: bool = True,
         silence_duration: float = 3,
         silence_proba: float = 3,
-        denoise: bool = False, 
+        denoise: bool = False,
         bn_path: str = "/home/kamil/datasets/wham_noise/wham_noise/tr",
         ir_path: str = "/home/kamil/datasets/MIT-ir-survey",
-        num_proc: int = 12,
+        num_proc: int = 2,
     ) -> None:
         """_summary_
 
         Args:
-            dataset_name (str, optional): _description_. Defaults to "mozilla-foundation/common_voice_17_0".
-            subset (str, optional): _description_. Defaults to 'validated'.
-            split (str, optional): _description_. Defaults to "ja".
-            speaker_column_name (str, optional): _description_. Defaults to 'client_id'.
-            audio_column_name (str, optional): _description_. Defaults to 'audio'.
-            min_samples_per_speaker (int, optional): _description_. Defaults to 10.
-            nb_speakers_from_dataset (int, optional): _description_. Defaults to 200.
-            sample_rate (int, optional): _description_. Defaults to 16000.
-            num_meetings (int, optional): _description_. Defaults to 2000.
-            nb_speakers_per_meeting (int, optional): _description_. Defaults to 3.
-            segments_per_meeting (int, optional): _description_. Defaults to 16.
-            normalize (bool, optional): _description_. Defaults to True.
-            augment (bool, optional): _description_. Defaults to False.
-            overlap_proba (float, optional): _description_. Defaults to 0.3.
-            overlap_length (float, optional): _description_. Defaults to 3.
-            random_gain (bool, optional): _description_. Defaults to False.
-            add_silence (bool, optional): _description_. Defaults to True.
-            silence_duration (float, optional): _description_. Defaults to 3.
-            silence_proba (float, optional): _description_. Defaults to 3.
-            denoise (bool, optional): _description_. Defaults to False.
-            bn_path (str, optional): _description_. Defaults to "/home/kamil/datasets/wham_noise/wham_noise/tr".
-            ir_path (str, optional): _description_. Defaults to "/home/kamil/datasets/MIT-ir-survey".
-            num_proc (int, optional): _description_. Defaults to 12.
+            dataset_name (str, optional): ASR dataset with single speaker audio files to be used to generate synthetic speaker diarization meetings. Defaults to "mozilla-foundation/common_voice_17_0".
+            subset (str, optional): subset of the ASR dataset to use. Defaults to 'validated'.
+            split (str, optional): split of the ASR dataset to use. Defaults to "ja".
+            speaker_column_name (str, optional): ASR dataset column name with speaker ids. Defaults to 'client_id'.
+            audio_column_name (str, optional): ASR dataset column name with audio files. Defaults to 'audio'.
+            min_samples_per_speaker (int, optional): 
+                The minimal number of audio samples from a given speaker in the ASR dataset
+                to use the speaker for meetings generation. Defaults to 10.
+            nb_speakers_from_dataset (int, optional): 
+                Maximum number of speakers to use from the ASR dataset to generate meetings. 
+                Defaults to 200.
+            sample_rate (int, optional): sample rate of the generated meetings. Defaults to 16000.
+            num_meetings (int, optional): number of meeting audio files to generate. Defaults to 1000.
+            nb_speakers_per_meeting (int, optional): number of speakers in generated meeting. Defaults to 3.
+            segments_per_meeting (int, optional): number of audio segments used in a generated meeting. Defaults to 16.
+            normalize (bool, optional): normalize audio segments. Defaults to True.
+            augment (bool, optional): augment generated meetings with background noise and reverberation. Defaults to False.
+            overlap_proba (float, optional): Probability of adding overlap to concatenated consecutive audio segments. Defaults to 0.3.
+            overlap_length (float, optional): Maximum overalp duration (in seconds) between two overlapping audio segments. Defaults to 3.
+            random_gain (bool, optional): Apply random gain to each audio segments. Defaults to False.
+            add_silence (bool, optional): Add silence or not in generated meeting . Defaults to True.
+            silence_duration (float, optional): maximum silence duration (in seconds). Defaults to 3.
+            silence_proba (float, optional): probability of adding a silence in a generated meeting. Defaults to 3.
+            denoise (bool, optional): denoise the generated meeting. Defaults to False.
+            bn_path (str, optional): path to background noise samples. Defaults to "/home/kamil/datasets/wham_noise/wham_noise/tr".
+            ir_path (str, optional): path to impulse response samples. Defaults to "/home/kamil/datasets/MIT-ir-survey".
+            num_proc (int, optional): Number of process used during generation. Defaults to 2.
         """
 
         # ASR dataset params:
@@ -277,7 +281,6 @@ class SyntheticDataset:
         batch_samples = self.speakers_to_sample_from_dataset.select(indexes)
 
         assert len(batch_samples) == self.segments_per_meeting
-
         return batch_samples
 
     def estimate_meeting_length(self, audio_segments):
