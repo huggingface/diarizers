@@ -118,8 +118,6 @@ python3 spd_datasets.py \
 
 ## Installation
 
-
-
 ## How to use? 
 
 

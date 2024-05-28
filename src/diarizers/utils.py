@@ -7,13 +7,13 @@ from pyannote.audio.utils.powerset import Powerset
 
 
 class Metrics:
-    """Metric class used by the HF trainer to compute speaker diarization metrics. 
-    """
+    """Metric class used by the HF trainer to compute speaker diarization metrics."""
+
     def __init__(self, specifications) -> None:
         """init method
 
         Args:
-            specifications (_type_): specifications attribute from a SegmentationModel. 
+            specifications (_type_): specifications attribute from a SegmentationModel.
         """
         self.powerset = specifications.powerset
         self.classes = specifications.classes
@@ -32,7 +32,7 @@ class Metrics:
         }
 
     def __call__(self, eval_pred):
-        
+
         logits, labels = eval_pred
 
         if self.powerset:

@@ -1,13 +1,14 @@
-import torch
 from dataclasses import dataclass, field
-from diarizers import SyntheticDataset, SyntheticDatasetConfig
+
+import torch
 from transformers import HfArgumentParser
+
+from diarizers import SyntheticDataset, SyntheticDatasetConfig
 
 
 @dataclass
 class ASRDatasetArguments:
-    """ 
-    """
+    """ """
 
     dataset_name: str = field(
         default="mozilla-foundation/common_voice_17_0",
@@ -95,7 +96,9 @@ class SyntheticMeetingArguments:
         default=False, metadata={"help": "Add silence or not in generated meeting . Defaults to True."}
     )
 
-    silence_duration: int = field(default=3, metadata={"help": "maximum silence duration (in seconds). Defaults to 3."})
+    silence_duration: int = field(
+        default=3, metadata={"help": "maximum silence duration (in seconds). Defaults to 3."}
+    )
 
     silence_proba: int = field(
         default=3, metadata={"help": "probability of adding a silence in a generated meeting. Defaults to 3."}
@@ -104,17 +107,17 @@ class SyntheticMeetingArguments:
     denoise: bool = field(default=False, metadata={"help": "Denoise the generated meeting. Defaults to False."})
 
 
-
 @dataclass
 class AdditionalArguments:
-    """ 
-    """
+    """ """
 
     num_proc: int = field(default=2, metadata={"help": "Number of processors used by the pipeline. Defaults to 2"})
 
     push_to_hub: bool = field(default=True, metadata={"help": "push the synthetic dataset to the hub"})
 
-    hub_repository: str = field(default=None,  metadata={"help": "Name of the hub repository where the synthetic dataset will be pushed."})
+    hub_repository: str = field(
+        default=None, metadata={"help": "Name of the hub repository where the synthetic dataset will be pushed."}
+    )
 
 
 if __name__ == "__main__":

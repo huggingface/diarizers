@@ -3,8 +3,8 @@ import copy
 import glob
 import os
 
-from pydub import AudioSegment
 from moviepy.editor import AudioFileClip
+from pydub import AudioSegment
 
 from diarizers import SpeakerDiarizationDataset
 
