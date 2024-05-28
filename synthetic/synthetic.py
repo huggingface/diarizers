@@ -24,9 +24,9 @@ class SyntheticDatasetConfig:
         speaker_column_name: str = 'client_id',
         audio_column_name: str = 'audio',
         min_samples_per_speaker: int = 10,
-        nb_speakers_from_dataset: int = 200,
+        nb_speakers_from_dataset: int = 20,
         sample_rate: int = 16000,
-        num_meetings: int = 2000,   
+        num_meetings: int = 200,   
         nb_speakers_per_meeting: int = 3, 
         segments_per_meeting: int = 16,
         normalize: bool = True,
@@ -174,7 +174,7 @@ class SyntheticDataset:
 
         print("nb speakers in dataset to keep:", len(self.speakers_to_sample_from))
 
-        # Filter the ASR dataset to keep only samples from speakers_to_sample_from
+        # Filter the ASR dataset to keep only samples from speakers_to_sample_from 
         self.speakers_to_sample_from_dataset = self.dataset.filter(
             lambda x: x in self.speakers_to_sample_from,
             input_columns=[str(self.speaker_column_name)],
@@ -242,10 +242,10 @@ class SyntheticDataset:
         return self.current_speaker
 
     def sample_meeting_segments(self):
-        """Sample segments that will be used for meeting generation: 
+        """Sample segments that will be used for meeting generation:
 
         Returns:
-            batch_samples: batch of samples to be concatenated to from a meeting. 
+            batch_samples (HuggingFace dataset): batch of samples to be concatenated to from a meeting.
         """
 
         batch_samples = Dataset.from_dict({str(self.speaker_column_name): [], str(self.audio_column_name): []})
@@ -281,14 +281,13 @@ class SyntheticDataset:
         return batch_samples
 
     def estimate_concat_audio_length(self, audio_segments):
-        """_summary_
+        """Estimate the audio duration of the meeting to be generated from the batch of audio segments.
 
         Args:
-            batch (_type_): _description_
-            sr (_type_): _description_
+            audio_segments (list): list of audio segments.
 
         Returns:
-            _type_: _description_
+            audio_duration (float): audio duration of the meeting to be generated.
         """
 
         audio_duration = 0
@@ -301,37 +300,44 @@ class SyntheticDataset:
         return audio_duration
 
     def normalize_audio(self, audio_segment):
-        """_summary_
-
-        Args:
-            audio_segment (_type_): _description_
-
-        Returns:
-            _type_: _description_
+        """Normalize audio_segment. 
         """
-
         return audio_segment / max(np.max(audio_segment), -np.min(audio_segment))
 
     def add_gain(self, audio_segment):
+        """Add gain to audio_segment
+        """
 
         audio_segment = self.apply_gain(audio_segment, sample_rate=self.sample_rate)
 
         return audio_segment
 
     def augment_audio(self, audio_file):
-        """_summary_
+        """Method to augment the input audio with background noise and reverb. 
 
         Args:
-            audio_file (_type_): _description_
+            audio_file (numpy.ndarray): generated meeting audio array.
 
         Returns:
-            _type_: _description_
+            audio_file (numpy.ndarray): augmented generated meeting audio array.
         """
 
         audio_file = self.augmentation_pipeline(samples=audio_file, sample_rate=self.sample_rate)
         return audio_file
 
     def refine_timestamps(self, audio_segment, speaker):
+        """Refine audio_segment timestamps using a Voice Activity Detector. 
+
+        Args:
+            audio_segment (numpy.ndarray): audio segment. 
+            speaker (str): speaker id. 
+
+        Returns:
+            audio_segment (numpy.ndarray): croped audio segment - removes the beginning and end of the segment where there is no speech.
+            file_timestamps_start (list): list with refined start timestamps. 
+            file_timestamps_end (list): list with refined end timestamps.
+            speakers (list): List of speakers associated to file_timestamps_start and file_timestamps_end. 
+        """
 
         speech_timestamps = self.get_speech_timestamps(audio_segment, self.vad_model, sampling_rate=self.sample_rate)
 
@@ -360,13 +366,13 @@ class SyntheticDataset:
         return (audio_segment, file_timestamps_start, file_timestamps_end, speakers)
 
     def denoise_audio(self, audio_file, rank=None):
-        """_summary_
+        """Method to denoise input audio. 
 
         Args:
-            audio_file (_type_): _description_
+            audio_file (np.ndarray): generated meeting audio array.
 
         Returns:
-            _type_: _description_
+            audio_file (np.ndarray): denoised generated meeting audio array. 
         """
 
         device = f"cuda:{(rank or 0)% torch.cuda.device_count()}"
@@ -390,6 +396,18 @@ class SyntheticDataset:
         file_timestamps_start,
         file_timestamps_end,
     ):
+        """Randomly add silences to generated meeting arrays. 
+
+        Args:
+            audio_file (np.ndarray): generated meeting audio array. 
+            file_timestamps_start (list): list of meeting level start timestamps. 
+            file_timestamps_end (list): list of meeting level end timestamps. 
+
+        Returns:
+            extended_audio_file (np.ndarray): Updated generated meeting audio array (possibly with silences).  
+            file_timestamps_start (list): updated list of start timestamps. 
+            file_timestamps_end (list): updated list of end timestamps.         
+        """
 
         if random.random() < self.silence_proba and len(file_timestamps_start) > 2:
             duration = np.maximum(np.random.normal(self.silence_duration, 3.0), 1)
@@ -402,8 +420,8 @@ class SyntheticDataset:
             silence_end_index = int(silence_end * self.sample_rate)
 
             relative_duration = silence_end - min(file_timestamps_start[insert_silence_index + 1 :])
-            file_timestamps_start[insert_silence_index + 1 :] += relative_duration
-            file_timestamps_end[insert_silence_index + 1 :] += relative_duration
+            file_timestamps_start[insert_silence_index + 1 :] += relative_duration 
+            file_timestamps_end[insert_silence_index + 1 :] += relative_duration 
 
             new_length = int(relative_duration * self.sample_rate) + len(audio_file)
             extended_audio_file = np.zeros(new_length)
@@ -426,19 +444,35 @@ class SyntheticDataset:
         file_timestamps_end_vad,
         speakers_vad,
     ):
+        """generate the multi speakers audio array and associated timestamps. 
+
+        Args:
+            audio_segments (list): list of audio segments to be concatenated
+            file_timestamps_start_vad (list): list of list of start timestamps.
+            file_timestamps_end_vad (list): list of list of end timestamps.
+            speakers_vad (list): list of list with speaker ids.
+
+        Returns:
+            audio_file (np.ndarray): generated meeting audio array.  
+            file_timestamps_start: list of meeting level start timestamps
+            file_timestamps_end: list of meeting level end timestamps. 
+            speakers: list of meeting level speakers. 
+        """
 
         start = 0
+        # Estimate the audio duration of the meeting to be generated: 
         audio_duration = self.estimate_concat_audio_length(audio_segments)
         audio_file = np.zeros(int(audio_duration * self.sample_rate))
         audio_file_length = len(audio_file)
 
+        # Meeting level timestamps and speakers: 
         file_timestamps_start = []
         file_timestamps_end = []
         speakers = []
 
         is_overlap = False
         for i, audio_segment in enumerate(audio_segments):
-
+            
             start_index = int(start * self.sample_rate)
 
             if start_index >= audio_file_length:
@@ -446,8 +480,10 @@ class SyntheticDataset:
 
             segment_length = min(audio_file_length - start_index, len(audio_segment))
 
+            # Concatenate audio segments: 
             audio_file[start_index : start_index + segment_length] += audio_segment[:segment_length]
 
+            # Update the meeting level timestamps and speaker lists:  
             file_timestamps_start.append(
                 [timestamps_start + start for timestamps_start in file_timestamps_start_vad[i]]
             )
@@ -456,9 +492,10 @@ class SyntheticDataset:
 
             end = start + len(audio_segment) / self.sample_rate
 
+            # Sample the next start position from a rayleight distribution with 200ms mode to model natural human conversation: 
             if np.random.rand() < self.overlap_proba and not is_overlap:
                 start = max(0, end + np.random.rayleigh(0.002) - 0.002 - self.overlap_length * np.random.rand())
-                is_overlap = True  # We add this to make sure we don't overlap multiple successive samples
+                is_overlap = True  # We add this to make sure we don't apply overlap to multiple successive samples
             else:
                 start = max(0, end + np.random.rayleigh(0.002) - 0.002)
                 is_overlap = False
@@ -481,14 +518,14 @@ class SyntheticDataset:
         files,
         rank,
     ):
-        """Concatenate a batch of audio segments
+        """Concatenate a batch of audio segments to form a synthetic meeting audio file, to be used with a HF .map function
 
         Args:
-            files (_type_): HUggingFace dataset audio files
+            file (dict): dataset files with "audio" feature.
             rank (_type_): _description_
 
         Returns:
-            _type_: _description_
+            new_batch: new batch containing the generated audio meeting file with timestamps and speakers. 
         """
 
         new_batch = {
@@ -508,15 +545,15 @@ class SyntheticDataset:
         audio_segments = []
 
         for element in batch:
-
+            
             audio_segment = element["audio"]["array"]
-
             resample = T.Resample(sr, self.sample_rate)
             audio_segment = resample(torch.tensor(audio_segment, dtype=torch.float32)).cpu().numpy()
 
             if self.random_gain:
                 audio_segment = self.add_gain(audio_segment)
-
+            
+            # Refine segment level timestamps: 
             (audio_segment, timestamps_start_vad, timestamps_end_vad, speakers_vad) = self.refine_timestamps(
                 audio_segment,
                 element["client_id"],
@@ -565,7 +602,7 @@ class SyntheticDataset:
         """ Main method to generate the synthetic dataset. 
 
         Returns:
-            final_dataset (HUgging Face datasets): final synthetic dataset. 
+            final_dataset (Hugging Face datasets): final synthetic dataset. 
         """
 
         if self.denoise:
@@ -605,9 +642,10 @@ class SyntheticDataset:
         return final_dataset
     
 
-
 if __name__ == "__main__": 
 
-    synthetic_config = SyntheticDatasetConfig()
+    synthetic_config = SyntheticDatasetConfig(num_proc=1)
 
     synthetic_dataset = SyntheticDataset(synthetic_config)
+
+    synthetic_dataset.generate()
