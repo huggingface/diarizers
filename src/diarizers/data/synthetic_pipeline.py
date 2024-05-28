@@ -27,13 +27,13 @@ class SyntheticDatasetConfig:
         nb_speakers_from_dataset: int = 20,
         sample_rate: int = 16000,
         num_meetings: int = 200,
-        nb_speakers_per_meeting: int = 3, 
+        nb_speakers_per_meeting: int = 3,
         segments_per_meeting: int = 16,
         normalize: bool = True,
         augment: bool = False,
         overlap_proba: float = 0.3,
         overlap_length: float = 3,
-        random_gain: bool = False,    
+        random_gain: bool = False,  
         add_silence: bool = True,
         silence_duration: float = 3,
         silence_proba: float = 3,
@@ -46,8 +46,8 @@ class SyntheticDatasetConfig:
 
         Args:
             dataset_name (str, optional): ASR dataset with single speaker audio files to be used to generate synthetic speaker diarization meetings. Defaults to "mozilla-foundation/common_voice_17_0".
-            subset (str, optional): subset of the ASR dataset to use. Defaults to 'validated'.
-            split (str, optional): split of the ASR dataset to use. Defaults to "ja".
+            subset (str, optional): ASR dataset subset. Defaults to 'validated'.
+            split (str, optional): ASR dataset split. Defaults to "ja".
             speaker_column_name (str, optional): ASR dataset column name with speaker ids. Defaults to 'client_id'.
             audio_column_name (str, optional): ASR dataset column name with audio files. Defaults to 'audio'.
             min_samples_per_speaker (int, optional): 
@@ -648,7 +648,5 @@ class SyntheticDataset:
 if __name__ == "__main__": 
 
     synthetic_config = SyntheticDatasetConfig(num_proc=1)
-
     synthetic_dataset = SyntheticDataset(synthetic_config)
-
     synthetic_dataset.generate()

@@ -108,3 +108,24 @@ python3 spd_datasets.py \
     --hub_repository=diarizers-community/callhome \
 ```
 
+
+# Synthetic dataset generation: 
+
+
+
+# Generate a synthetic dataset compatible with diarizers: 
+
+
+## Installation
+
+
+
+## How to use? 
+
+
+"/home/kamil/datasets/wham_noise/wham_noise/tr"
+
+"/home/kamil/datasets/MIT-ir-survey"
+
+## Training with diarizers
+
