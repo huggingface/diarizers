@@ -127,5 +127,34 @@ python3 spd_datasets.py \
 
 "/home/kamil/datasets/MIT-ir-survey"
 
-## Training with diarizers
+
+
+```bash
+python3 synthetic_dataset.py \
+    --dataset_name="mozilla-foundation/common_voice_17_0" \
+    --subset="validated" \
+    --split="ja" \
+    --speaker_column_name="client_id" \
+    --audio_column_name="audio" \
+    --min_samples_per_speaker=10 \
+    --nb_speakers_from_dataset=200 \
+    --sample_rate=16000 \
+    --nb_speakers_per_meeting=3 \
+    --num_meetings=200 \
+    --segments_per_meeting=16 \
+    --normalize=True \
+    --augment=False \
+    --overlap_proba=0.3 \
+    --overlap_length=3 \
+    --random_gain=False \
+    --add_silence=False \
+    --silence_duration=3 \
+    --silence_proba=3 \
+    --denoise=False \
+    --bn_path=None \
+    --ir_path=None \
+    --num_proc=2 \
+    --push_to_hub=True \
+    --hub_repository='test'
+```
 

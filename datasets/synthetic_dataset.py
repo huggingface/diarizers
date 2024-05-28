@@ -69,6 +69,10 @@ class SyntheticMeetingArguments:
         metadata={"help": "augment generated meetings with background noise and reverberation. Defaults to False."},
     )
 
+    bn_path: str = field(default=None, metadata={"help": "path to background noise samples."})
+
+    ir_path: str = field(default=None, metadata={"help": "path to impulse response samples"})
+
     overlap_proba: float = field(
         default=0.3,
         metadata={
@@ -79,7 +83,7 @@ class SyntheticMeetingArguments:
     overlap_length: float = field(
         default=3,
         metadata={
-            "help": "Maximum overalp duration (in seconds) between two overlapping audio segments. Defaults to 3."
+            "help": "Maximum overlap duration (in seconds) between two overlapping audio segments. Defaults to 3."
         },
     )
 
@@ -99,9 +103,6 @@ class SyntheticMeetingArguments:
 
     denoise: bool = field(default=False, metadata={"help": "Denoise the generated meeting. Defaults to False."})
 
-    bn_path: str = field(default=None, metadata={"help": "path to background noise samples."})
-
-    ir_path: str = field(default=None, metadata={"help": "path to impulse response samples"})
 
 
 @dataclass
