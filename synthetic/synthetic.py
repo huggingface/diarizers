@@ -260,7 +260,7 @@ class SyntheticDataset:
         self.current_speaker = self.sampled_speakers[0]
 
         indexes = []
-        # Sample segments_per_meeting segments: 
+        # Sample segments_per_meeting segments:
         for _ in range(self.segments_per_meeting):
             
             # select a segment from the current speaker and remove it from the pool of segments: 
@@ -280,7 +280,7 @@ class SyntheticDataset:
 
         return batch_samples
 
-    def estimate_concat_audio_length(self, audio_segments):
+    def estimate_meeting_length(self, audio_segments):
         """Estimate the audio duration of the meeting to be generated from the batch of audio segments.
 
         Args:
@@ -299,12 +299,12 @@ class SyntheticDataset:
 
         return audio_duration
 
-    def normalize_audio(self, audio_segment):
+    def normalize_audio_segment(self, audio_segment):
         """Normalize audio_segment. 
         """
         return audio_segment / max(np.max(audio_segment), -np.min(audio_segment))
 
-    def add_gain(self, audio_segment):
+    def add_gain_to_audio_segment(self, audio_segment):
         """Add gain to audio_segment
         """
 
@@ -312,7 +312,7 @@ class SyntheticDataset:
 
         return audio_segment
 
-    def augment_audio(self, audio_file):
+    def augment_audio_segment(self, audio_file):
         """Method to augment the input audio with background noise and reverb. 
 
         Args:
@@ -325,7 +325,7 @@ class SyntheticDataset:
         audio_file = self.augmentation_pipeline(samples=audio_file, sample_rate=self.sample_rate)
         return audio_file
 
-    def refine_timestamps(self, audio_segment, speaker):
+    def refine_audio_segment_timestamps(self, audio_segment, speaker):
         """Refine audio_segment timestamps using a Voice Activity Detector. 
 
         Args:
@@ -365,7 +365,7 @@ class SyntheticDataset:
 
         return (audio_segment, file_timestamps_start, file_timestamps_end, speakers)
 
-    def denoise_audio(self, audio_file, rank=None):
+    def denoise_audio_segment(self, audio_file, rank=None):
         """Method to denoise input audio. 
 
         Args:
@@ -390,7 +390,7 @@ class SyntheticDataset:
             )
         return audio_file
 
-    def add_silences(
+    def add_silences_to_audio_segment(
         self,
         audio_file,
         file_timestamps_start,
@@ -437,7 +437,7 @@ class SyntheticDataset:
 
         return extended_audio_file, file_timestamps_start, file_timestamps_end
 
-    def create_multi_speakers_audio(
+    def create_meeting(
         self,
         audio_segments,
         file_timestamps_start_vad,
@@ -461,7 +461,7 @@ class SyntheticDataset:
 
         start = 0
         # Estimate the audio duration of the meeting to be generated: 
-        audio_duration = self.estimate_concat_audio_length(audio_segments)
+        audio_duration = self.estimate_meeting_length(audio_segments)
         audio_file = np.zeros(int(audio_duration * self.sample_rate))
         audio_file_length = len(audio_file)
 
@@ -551,10 +551,10 @@ class SyntheticDataset:
             audio_segment = resample(torch.tensor(audio_segment, dtype=torch.float32)).cpu().numpy()
 
             if self.random_gain:
-                audio_segment = self.add_gain(audio_segment)
+                audio_segment = self.add_gain_to_audio_segment(audio_segment)
             
             # Refine segment level timestamps: 
-            (audio_segment, timestamps_start_vad, timestamps_end_vad, speakers_vad) = self.refine_timestamps(
+            (audio_segment, timestamps_start_vad, timestamps_end_vad, speakers_vad) = self.refine_audio_segment_timestamps(
                 audio_segment,
                 element["client_id"],
             )
@@ -563,7 +563,7 @@ class SyntheticDataset:
             speakers.append(speakers_vad)
             audio_segments.append(audio_segment)
 
-        (audio_file, file_timestamps_start, file_timestamps_end, speakers) = self.create_multi_speakers_audio(
+        (audio_file, file_timestamps_start, file_timestamps_end, speakers) = self.create_meeting(
             audio_segments, file_timestamps_start, file_timestamps_end, speakers
         )
 
@@ -572,16 +572,16 @@ class SyntheticDataset:
                 audio_file,
                 file_timestamps_start,
                 file_timestamps_end,
-            ) = self.add_silences(audio_file, file_timestamps_start, file_timestamps_end)
+            ) = self.add_silences_to_audio_segment(audio_file, file_timestamps_start, file_timestamps_end)
 
         if self.denoise:
-            audio_file = self.denoise_audio(audio_file, rank=rank)
+            audio_file = self.denoise_audio_segment(audio_file, rank=rank)
 
         if self.augment:
-            audio_file = self.augment_audio(audio_file)
+            audio_file = self.augment_audio_segment(audio_file)
 
         if self.normalize:
-            audio_file = self.normalize_audio(audio_file)
+            audio_file = self.normalize_audio_segment(audio_file)
 
         audio_file = {
             "array": np.array(audio_file),
@@ -599,7 +599,7 @@ class SyntheticDataset:
     def generate(
         self,
     ):
-        """ Main method to generate the synthetic dataset. 
+        """Main method to generate a speaker diarization synthetic dataset. 
 
         Returns:
             final_dataset (Hugging Face datasets): final synthetic dataset. 
