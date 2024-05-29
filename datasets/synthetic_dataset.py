@@ -156,5 +156,6 @@ if __name__ == "__main__":
 
     synthetic_dataset = SyntheticDataset(synthetic_config).generate()
 
-    if addition_params.push_to_hub and addition_params.dataset_name is not None:
+   
+    if addition_params.push_to_hub and addition_params.hub_repository is not None:
         synthetic_dataset.push_to_hub(addition_params.hub_repository)
