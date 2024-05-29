@@ -88,7 +88,7 @@ _deps = [
     "datasets[audio]>=2.11.0",
     "pyannote.audio",
     "audiomentations",
-    "demucs",
+    "denoiser",
 ]
 
 # this is a lookup table with items like:
@@ -162,7 +162,7 @@ extras = {}
 extras["quality"] = deps_list("black", "isort", "flake8")
 
 
-extras["dev"] = extras["quality"] + deps_list("transformers", "accelerate", "datasets[audio]", "pyannote.audio", "audiomentations", "demucs")
+extras["dev"] = extras["quality"] + deps_list("transformers", "accelerate", "datasets[audio]", "pyannote.audio", "audiomentations", "denoiser")
 
 install_requires = [
     deps['black'],
@@ -177,7 +177,7 @@ install_requires = [
     deps["datasets[audio]"],
     deps["pyannote.audio"],
     deps['audiomentations'],
-    deps['demucs'],
+    deps['denoiser'],
 ]
 
 setup(
