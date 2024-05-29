@@ -162,6 +162,8 @@ class SyntheticDataset:
 
         self.num_proc = config.num_proc
 
+        assert self.num_proc < self.num_meetings, 'please make sure num_proc <= num_meetings'
+
         # Load ASR dataset:
         dataset = load_dataset(str(self.dataset_name), str(self.split))
         self.dataset = dataset[str(self.subset)].select_columns(
