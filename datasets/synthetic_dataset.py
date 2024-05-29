@@ -23,14 +23,14 @@ class ASRDatasetArguments:
     speaker_column_name: str = field(
         default="client_id",
         metadata={
-            "help": "The name of the training data set split to use (via the datasets library). Defaults to 'train'"
+            "help": "Speaker column name. Default to 'client_id'"
         },
     )
 
     audio_column_name: str = field(
         default="audio",
         metadata={
-            "help": "The name of the training data set split to use (via the datasets library). Defaults to 'train'"
+            "help": "Audio column name. Default to 'audio'"
         },
     )
 

@@ -1,6 +1,6 @@
 # Speaker diarization datasets
 
-## Add any speaker diarization dataset to the hub
+## 1. Add any speaker diarization dataset to the hub
 
 General steps to add a Speaker diarization dataset with <files, annotations> to the hub:  
 
@@ -109,22 +109,37 @@ python3 spd_datasets.py \
 ```
 
 
-# Synthetic dataset generation: 
+## 2. Generate a synthetic dataset compatible with diarizers: 
 
+### Installation
 
+To use the synthetic dataset pipeline, first install `diarizers`: 
 
-# Generate a synthetic dataset compatible with diarizers: 
+```sh
+git clone https://github.com/huggingface/diarizers.git
+cd diarizers
+pip install -e .
+```
 
+If you want to augment your synthetic datas with noise, you need to use background noise and room impulse response datasets. Here are suggested datasets and how to download them: 
 
-## Installation
+- Background Noise dataset: [WHAM!](http://wham.whisper.ai/). To download: 
+
+```
+wget https://my-bucket-a8b4b49c25c811ee9a7e8bba05fa24c7.s3.amazonaws.com/wham_noise.zip
+unzip wham_noise.zip
+```
+
+- Room Impulse Response dataset: [MIT-ir-survey](https://mcdermottlab.mit.edu/Reverb/IR_Survey.html). To download: 
+
+```
+wget https://mcdermottlab.mit.edu/Reverb/IRMAudio/Audio.zip
+unzip Audio.zip
+```
 
 ## How to use? 
 
-
-"/home/kamil/datasets/wham_noise/wham_noise/tr"
-
-"/home/kamil/datasets/MIT-ir-survey"
-
+The pipeline starts from any 
 
 
 ```bash

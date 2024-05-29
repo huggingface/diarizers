@@ -45,13 +45,13 @@ class SyntheticDatasetConfig:
         """_summary_
 
         Args:
-            dataset_name (str, optional): ASR dataset with single speaker audio files to be used to generate synthetic speaker diarization meetings. Defaults to "mozilla-foundation/common_voice_17_0".
+            dataset_name (str, optional): ASR dataset to be used to generate synthetic speaker diarization meetings. Defaults to "mozilla-foundation/common_voice_17_0".
             subset (str, optional): ASR dataset subset. Defaults to 'validated'.
             split (str, optional): ASR dataset split. Defaults to "ja".
             speaker_column_name (str, optional): ASR dataset column name with speaker ids. Defaults to 'client_id'.
             audio_column_name (str, optional): ASR dataset column name with audio files. Defaults to 'audio'.
             min_samples_per_speaker (int, optional):
-                The minimal number of audio samples from a given speaker in the ASR dataset
+                Minimal number of audio samples from a given speaker in the ASR dataset
                 to use the speaker for meetings generation. Defaults to 10.
             nb_speakers_from_dataset (int, optional):
                 Maximum number of speakers to use from the ASR dataset to generate meetings.
