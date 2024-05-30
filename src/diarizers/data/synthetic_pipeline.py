@@ -18,11 +18,11 @@ from datasets import Audio, Dataset, concatenate_datasets, load_dataset
 class SyntheticDatasetConfig:
     def __init__(
         self,
-        dataset_name: str = "mozilla-foundation/common_voice_17_0",
-        subset: str = "validated",
-        split: str = "ja",
-        speaker_column_name: str = "client_id",
-        audio_column_name: str = "audio",
+        dataset_name: str,
+        subset: str,
+        split: str,
+        speaker_column_name: str,
+        audio_column_name: str,
         min_samples_per_speaker: int = 10,
         nb_speakers_from_dataset: int = -1,
         sample_rate: int = 16000,
@@ -120,7 +120,7 @@ class SyntheticDataset:
 
     def __init__(
         self,
-        config=SyntheticDatasetConfig(),
+        config: SyntheticDatasetConfig,
     ) -> None:
         """
         Init method to the Synthetic dataset class.

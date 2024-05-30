@@ -136,35 +136,38 @@ unzip Audio.zip
 
 ### How to use? 
 
-To generate synthetic datasets, you will need to specify a few parameters. The different parameters are explained in the [synthetic_dataset.py](synthetic_dataset.py) script. You can generate a synthetic speaker diarization dataset with this example: 
+To generate synthetic datasets, you will need to specify a few parameters via the `SyntheticDatasetConfig` class. 
 
-```bash
-python3 synthetic_dataset.py \
-    --dataset_name="mozilla-foundation/common_voice_17_0" \
-    --subset="validated" \
-    --split="ja" \
-    --speaker_column_name="client_id" \
-    --audio_column_name="audio" \
-    --min_samples_per_speaker=10 \
-    --nb_speakers_from_dataset=-1 \
-    --sample_rate=16000 \
-    --nb_speakers_per_meeting=3 \
-    --num_meetings=200 \
-    --segments_per_meeting=16 \
-    --normalize=True \
-    --augment=False \
-    --overlap_proba=0.3 \
-    --overlap_length=3 \
-    --random_gain=False \
-    --add_silence=False \
-    --silence_duration=3 \
-    --silence_proba=3 \
-    --denoise=False \
-    --bn_path=None \
-    --ir_path=None \
-    --num_proc=2 \
-    --push_to_hub=True \
-    --hub_repository='test'
+You can generate 20 hours of japanese synthetic speaker diarization datas using the following code snippet: 
+
+```python
+from diarizers import SyntheticDatasetConfig, SyntheticDataset
+
+synthetic_config = SyntheticDatasetConfig(
+        dataset_name="mozilla-foundation/common_voice_17_0",
+        subset="validated",
+        split="ja",
+        speaker_column_name="client_id", 
+        audio_column_name="audio", 
+        min_samples_per_speaker=10,
+        nb_speakers_from_dataset=-1,
+        sample_rate=16000, 
+        nb_speakers_per_meeting=3,
+        num_meetings=1600,  
+        segments_per_meeting=16, 
+        normalize=True, 
+        augment=False, 
+        overlap_proba=0.3,
+        overlap_length=3, 
+        random_gain=False,
+        add_silence=True, 
+        silence_duration=3,  
+        silence_proba=0.7, 
+        denoise=False, 
+        num_proc=2
+)
+dataset = SyntheticDataset(synthetic_config).generate()
+dataset.push_to_hub('diarizers-community/synthetic-speaker-diarization-dataset')
 ```
 
 Find more informations on how to use 🤗 Diarizers synthetic speaker diarization pipeline in this notebook: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1kaKv5Qa2dUuEwyLoFeh5mCwgy8O_ZdYA#scrollTo=27RrvTZte4BF). 
