@@ -8,7 +8,6 @@ from diarizers import SyntheticDataset, SyntheticDatasetConfig
 
 @dataclass
 class ASRDatasetArguments:
-    """ """
 
     dataset_name: str = field(
         default="mozilla-foundation/common_voice_17_0",
@@ -50,7 +49,6 @@ class ASRDatasetArguments:
 
 @dataclass
 class SyntheticMeetingArguments:
-    """ """
 
     nb_speakers_per_meeting: int = field(
         default=3, metadata={"help": "number of speakers in generated meeting. Defaults to 3."}
@@ -109,7 +107,6 @@ class SyntheticMeetingArguments:
 
 @dataclass
 class AdditionalArguments:
-    """ """
 
     num_proc: int = field(default=2, metadata={"help": "Number of processes used by the pipeline. Defaults to 2."})
 
