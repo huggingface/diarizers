@@ -24,7 +24,7 @@ class SyntheticDatasetConfig:
         speaker_column_name: str = "client_id",
         audio_column_name: str = "audio",
         min_samples_per_speaker: int = 10,
-        nb_speakers_from_dataset: int = 20,
+        nb_speakers_from_dataset: int = -1,
         sample_rate: int = 16000,
         num_meetings: int = 200,
         nb_speakers_per_meeting: int = 3,
