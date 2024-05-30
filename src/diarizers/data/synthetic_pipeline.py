@@ -250,7 +250,7 @@ class SyntheticDataset:
         """Sample segments that will be used for meeting generation:
 
         Returns:
-            batch_samples (HuggingFace dataset): batch of samples to be concatenated to from a meeting.
+            batch_samples (HuggingFace dataset): batch of audio segments to be concatenated to form a meeting.
         """
 
         batch_samples = Dataset.from_dict({str(self.speaker_column_name): [], str(self.audio_column_name): []})
@@ -285,13 +285,13 @@ class SyntheticDataset:
         return batch_samples
 
     def estimate_meeting_length(self, audio_segments):
-        """Estimate the audio duration of the meeting to be generated from the batch of audio segments.
+        """Estimate the meeting audio duration from its batch of audio segments.
 
         Args:
             audio_segments (list): list of audio segments.
 
         Returns:
-            audio_duration (float): audio duration of the meeting to be generated.
+            audio_duration (float): meeting audio duration.
         """
 
         audio_duration = 0
@@ -304,18 +304,17 @@ class SyntheticDataset:
         return audio_duration
 
     def normalize_audio_segment(self, audio_segment):
-        """Normalize audio_segment."""
+        """Normalize audio_segment"""
         return audio_segment / max(np.max(audio_segment), -np.min(audio_segment))
 
     def add_gain_to_audio_segment(self, audio_segment):
         """Add gain to audio_segment"""
-
         audio_segment = self.apply_gain(audio_segment, sample_rate=self.sample_rate)
 
         return audio_segment
 
     def augment_audio_segment(self, audio_file):
-        """Method to augment the input audio with background noise and reverb.
+        """Augment the input audio with background noise and reverberation.
 
         Args:
             audio_file (numpy.ndarray): generated meeting audio array.
@@ -335,9 +334,9 @@ class SyntheticDataset:
             speaker (str): speaker id.
 
         Returns:
-            audio_segment (numpy.ndarray): croped audio segment - removes the beginning and end of the segment where there is no speech.
-            file_timestamps_start (list): list with refined start timestamps.
-            file_timestamps_end (list): list with refined end timestamps.
+            audio_segment (numpy.ndarray): croped audio segment - removes the beginning and end of the segment if there is no speech.
+            file_timestamps_start (list): list of refined start timestamps.
+            file_timestamps_end (list): list of refined end timestamps.
             speakers (list): List of speakers associated to file_timestamps_start and file_timestamps_end.
         """
 
@@ -368,7 +367,7 @@ class SyntheticDataset:
         return (audio_segment, file_timestamps_start, file_timestamps_end, speakers)
 
     def denoise_audio_segment(self, audio_file, rank=None):
-        """Method to denoise input audio.
+        """Denoise input audio.
 
         Args:
             audio_file (np.ndarray): generated meeting audio array.
@@ -398,7 +397,7 @@ class SyntheticDataset:
         file_timestamps_start,
         file_timestamps_end,
     ):
-        """Randomly add silences to generated meeting arrays.
+        """Randomly add silences to generated meetings.
 
         Args:
             audio_file (np.ndarray): generated meeting audio array.
@@ -446,7 +445,7 @@ class SyntheticDataset:
         file_timestamps_end_vad,
         speakers_vad,
     ):
-        """generate the multi speakers audio array and associated timestamps.
+        """Generate multi-speakers meeting and annotations.
 
         Args:
             audio_segments (list): list of audio segments to be concatenated
@@ -520,14 +519,14 @@ class SyntheticDataset:
         files,
         rank,
     ):
-        """Concatenate a batch of audio segments to form a synthetic meeting audio file, to be used with a HF .map function
+        """Concatenate a batch of audio segments to create a synthetic meeting audio file. Use thie method with a HF .map function
 
         Args:
             file (dict): dataset files with "audio" feature.
             rank (_type_): _description_
 
         Returns:
-            new_batch: new batch containing the generated audio meeting file with timestamps and speakers.
+            new_batch: new batch containing the generated audio meeting file with annotations.
         """
 
         new_batch = {
@@ -608,7 +607,7 @@ class SyntheticDataset:
         """Main method to generate a speaker diarization synthetic dataset.
 
         Returns:
-            final_dataset (Hugging Face datasets): final synthetic dataset.
+            final_dataset (Hugging Face datasets): final synthetic speaker diarization dataset.
         """
 
         if self.denoise:
