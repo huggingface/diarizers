@@ -13,7 +13,7 @@ class ASRDatasetArguments:
     dataset_name: str = field(
         default="mozilla-foundation/common_voice_17_0",
         metadata={
-            "help": "ASR dataset with single speaker audio files to be used to generate synthetic speaker diarization meetings. Defaults to 'mozilla-foundation/common_voice_17_0'."
+            "help": "name of the ASR dataset to be used to generate synthetic meetings. Defaults to 'mozilla-foundation/common_voice_17_0'"
         },
     )
     subset: str = field(default="validated", metadata={"help": "ASR dataset subset. Defaults to 'validated'."})
@@ -37,15 +37,15 @@ class ASRDatasetArguments:
     min_samples_per_speaker: int = field(
         default=10,
         metadata={
-            "help": "Minimum number of audio samples from a given speaker in the ASR dataset to use that speaker for meeting generation. Defaults to 10"
+            "help": "Minimal number of audio samples associated to a given speaker in the ASR dataset to use him in synthetic meeting generation. Defaults to 10."
         },
     )
 
     nb_speakers_from_dataset: int = field(
-        default=200, metadata={"help": "Maximum number of speakers to use from the ASR dataset to generate meetings"}
+        default=-1, metadata={"help": "Number of speakers to keep for synthetic meeting generation. The speakers with the highest number of audio segments will be kept.Default to -1"}
     )
 
-    sample_rate: int = field(default=16000, metadata={"help": "Generated meetings sample rate"})
+    sample_rate: int = field(default=16000, metadata={"help": "sample rate of the generated meetings. Defaults to 16000."})
 
 
 @dataclass
@@ -56,35 +56,35 @@ class SyntheticMeetingArguments:
         default=3, metadata={"help": "number of speakers in generated meeting. Defaults to 3."}
     )
     num_meetings: int = field(
-        default=200, metadata={"help": "Number of meeting audio files to generate. Defaults to 1000."}
+        default=1600, metadata={"help": "Number of meeting audio files to generate. Defaults to 1600."}
     )
 
     segments_per_meeting: int = field(
         default=16, metadata={"help": "number of audio segments used in a generated meeting. Defaults to 16."}
     )
 
-    normalize: bool = field(default=True, metadata={"help": "normalize audio segments. Defaults to True."})
+    normalize: bool = field(default=True, metadata={"help": "Wether to normalize the audio segments. Defaults to True."})
 
     augment: bool = field(
         default=False,
-        metadata={"help": "augment generated meetings with background noise and reverberation. Defaults to False."},
+        metadata={"help": "Add background noise and reverberation to recorded meetings. Defaults to False."},
     )
 
-    bn_path: str = field(default=None, metadata={"help": "path to background noise samples."})
+    bn_path: str = field(default=None, metadata={"help": "path to background noise samples. Default to None"})
 
-    ir_path: str = field(default=None, metadata={"help": "path to impulse response samples"})
+    ir_path: str = field(default=None, metadata={"help": "path to impulse response samples. Default to None"})
 
     overlap_proba: float = field(
         default=0.3,
         metadata={
-            "help": "Probability of adding overlap to concatenated consecutive audio segments. Defaults to 0.3."
+            "help": "Probability of adding overlap to successive audio segments. Defaults to 0.3."
         },
     )
 
     overlap_length: float = field(
         default=3,
         metadata={
-            "help": "Maximum overlap duration (in seconds) between two overlapping audio segments. Defaults to 3."
+            "help": "Maximum overlap time (in seconds) between two overlapping audio segments. Defaults to 3."
         },
     )
 
@@ -97,26 +97,26 @@ class SyntheticMeetingArguments:
     )
 
     silence_duration: int = field(
-        default=3, metadata={"help": "maximum silence duration (in seconds). Defaults to 3."}
+        default=3, metadata={"help": "Maximum silence duration (in seconds). Defaults to 3."}
     )
 
     silence_proba: int = field(
-        default=3, metadata={"help": "probability of adding a silence in a generated meeting. Defaults to 3."}
+        default=0.7, metadata={"help": "Probability of adding a silence in a generated meeting. Defaults to 0.7."}
     )
 
-    denoise: bool = field(default=False, metadata={"help": "Denoise the generated meeting. Defaults to False."})
+    denoise: bool = field(default=False, metadata={"help": "Whether to denoise or not the generated meeting. Defaults to False."})
 
 
 @dataclass
 class AdditionalArguments:
     """ """
 
-    num_proc: int = field(default=2, metadata={"help": "Number of processors used by the pipeline. Defaults to 2"})
+    num_proc: int = field(default=2, metadata={"help": "Number of processes used by the pipeline. Defaults to 2."})
 
-    push_to_hub: bool = field(default=True, metadata={"help": "push the synthetic dataset to the hub"})
+    push_to_hub: bool = field(default=True, metadata={"help": "Wether to push the synthetic dataset to the hub or not. Defualt to True."})
 
     hub_repository: str = field(
-        default=None, metadata={"help": "Name of the hub repository where the synthetic dataset will be pushed."}
+        default=None, metadata={"help": "Name of the hub repository to which the synthetic dataset will be pushed."}
     )
 
 
