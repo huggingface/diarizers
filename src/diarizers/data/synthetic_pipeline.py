@@ -635,7 +635,7 @@ class SyntheticDataset:
             batched=True,
             batch_size=self.segments_per_meeting,
             remove_columns=audio_samples.column_names,
-            with_rank=True if torch.cuda.device_count() > 0 else False,
+            with_rank=True,
             num_proc=self.num_proc,
         ).cast_column("audio", Audio(sampling_rate=self.sample_rate))
 
