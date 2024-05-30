@@ -53,7 +53,7 @@ class SyntheticDatasetConfig:
             min_samples_per_speaker (int, optional):
                 Minimal number of audio samples associated to a given speaker in the ASR dataset to use him in synthetic meeting generation. Defaults to 10.
             nb_speakers_from_dataset (int, optional):
-                Number of speakers to keep for synthetic meeting generation. The speakers with the highest number of audio segments will be kept. 
+                Number of speakers to keep for synthetic meeting generation. The speakers with the highest number of audio segments will be kept.
                 Defaults to 200.
             sample_rate (int, optional): sample rate of the generated meetings. Defaults to 16000.
             num_meetings (int, optional): number of meeting audio files to generate. Defaults to 1600.
@@ -161,7 +161,7 @@ class SyntheticDataset:
 
         self.num_proc = config.num_proc
 
-        assert self.num_proc <= self.num_meetings, 'please make sure num_proc <= num_meetings'
+        assert self.num_proc <= self.num_meetings, "please make sure num_proc <= num_meetings"
 
         # Load ASR dataset:
         dataset = load_dataset(str(self.dataset_name), str(self.split))

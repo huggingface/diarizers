@@ -21,16 +21,12 @@ class ASRDatasetArguments:
 
     speaker_column_name: str = field(
         default="client_id",
-        metadata={
-            "help": "Speaker column name. Default to 'client_id'"
-        },
+        metadata={"help": "Speaker column name. Default to 'client_id'"},
     )
 
     audio_column_name: str = field(
         default="audio",
-        metadata={
-            "help": "Audio column name. Default to 'audio'"
-        },
+        metadata={"help": "Audio column name. Default to 'audio'"},
     )
 
     min_samples_per_speaker: int = field(
@@ -41,10 +37,15 @@ class ASRDatasetArguments:
     )
 
     nb_speakers_from_dataset: int = field(
-        default=-1, metadata={"help": "Number of speakers to keep for synthetic meeting generation. The speakers with the highest number of audio segments will be kept.Default to -1"}
+        default=-1,
+        metadata={
+            "help": "Number of speakers to keep for synthetic meeting generation. The speakers with the highest number of audio segments will be kept.Default to -1"
+        },
     )
 
-    sample_rate: int = field(default=16000, metadata={"help": "sample rate of the generated meetings. Defaults to 16000."})
+    sample_rate: int = field(
+        default=16000, metadata={"help": "sample rate of the generated meetings. Defaults to 16000."}
+    )
 
 
 @dataclass
@@ -61,7 +62,9 @@ class SyntheticMeetingArguments:
         default=16, metadata={"help": "number of audio segments used in a generated meeting. Defaults to 16."}
     )
 
-    normalize: bool = field(default=True, metadata={"help": "Wether to normalize the audio segments. Defaults to True."})
+    normalize: bool = field(
+        default=True, metadata={"help": "Wether to normalize the audio segments. Defaults to True."}
+    )
 
     augment: bool = field(
         default=False,
@@ -74,16 +77,12 @@ class SyntheticMeetingArguments:
 
     overlap_proba: float = field(
         default=0.3,
-        metadata={
-            "help": "Probability of adding overlap to successive audio segments. Defaults to 0.3."
-        },
+        metadata={"help": "Probability of adding overlap to successive audio segments. Defaults to 0.3."},
     )
 
     overlap_length: float = field(
         default=3,
-        metadata={
-            "help": "Maximum overlap time (in seconds) between two overlapping audio segments. Defaults to 3."
-        },
+        metadata={"help": "Maximum overlap time (in seconds) between two overlapping audio segments. Defaults to 3."},
     )
 
     random_gain: bool = field(
@@ -102,7 +101,9 @@ class SyntheticMeetingArguments:
         default=0.7, metadata={"help": "Probability of adding a silence in a generated meeting. Defaults to 0.7."}
     )
 
-    denoise: bool = field(default=False, metadata={"help": "Whether to denoise or not the generated meeting. Defaults to False."})
+    denoise: bool = field(
+        default=False, metadata={"help": "Whether to denoise or not the generated meeting. Defaults to False."}
+    )
 
 
 @dataclass
@@ -110,7 +111,9 @@ class AdditionalArguments:
 
     num_proc: int = field(default=2, metadata={"help": "Number of processes used by the pipeline. Defaults to 2."})
 
-    push_to_hub: bool = field(default=True, metadata={"help": "Wether to push the synthetic dataset to the hub or not. Defualt to True."})
+    push_to_hub: bool = field(
+        default=True, metadata={"help": "Wether to push the synthetic dataset to the hub or not. Defualt to True."}
+    )
 
     hub_repository: str = field(
         default=None, metadata={"help": "Name of the hub repository to which the synthetic dataset will be pushed."}
@@ -153,6 +156,5 @@ if __name__ == "__main__":
 
     synthetic_dataset = SyntheticDataset(synthetic_config).generate()
 
-   
     if addition_params.push_to_hub and addition_params.hub_repository is not None:
         synthetic_dataset.push_to_hub(addition_params.hub_repository)
