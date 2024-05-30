@@ -118,7 +118,7 @@ cd diarizers
 pip install -e .
 ```
 
-If you want to augment your synthetic datas with noise, you need to use background noise and room impulse response datasets. Here are suggested datasets and how to download them: 
+To augment your synthetic datas with noise, you need to use background noise and room impulse response datasets. Here are suggested datasets and how to download them: 
 
 - Background Noise dataset: [WHAM!](http://wham.whisper.ai/). To download: 
 
@@ -134,10 +134,9 @@ wget https://mcdermottlab.mit.edu/Reverb/IRMAudio/Audio.zip
 unzip Audio.zip
 ```
 
-## How to use? 
+### How to use? 
 
-The pipeline starts from any 
-
+To generate synthetic datasets, you will need to specify a few parameters. The different parameters are explained in the [synthetic_dataset.py](synthetic_dataset.py) script. You can generate a synthetic speaker diarization dataset with this example: 
 
 ```bash
 python3 synthetic_dataset.py \
@@ -167,3 +166,5 @@ python3 synthetic_dataset.py \
     --push_to_hub=True \
     --hub_repository='test'
 ```
+
+Find more informations on how to use 🤗 Diarizers synthetic speaker diarization pipeline in this notebook: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1kaKv5Qa2dUuEwyLoFeh5mCwgy8O_ZdYA#scrollTo=27RrvTZte4BF). 
