@@ -116,7 +116,7 @@ if __name__ == "__main__":
             remove_columns=next(iter(dataset.values())).column_names,
             batched=True, 
             batch_size=1
-        ).with_format("torch")
+        ).shuffle().with_format("torch")
 
     if training_args.do_eval: 
         val_set = dataset[str(val_split_name)].map(

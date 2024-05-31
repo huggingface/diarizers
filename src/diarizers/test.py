@@ -28,8 +28,8 @@ from pyannote.audio.pipelines.utils import get_devices
 from pyannote.audio.torchmetrics import (DiarizationErrorRate, FalseAlarmRate,
                                          MissedDetectionRate,
                                          SpeakerConfusionRate)
-from pyannote.metrics import diarization
 from pyannote.core import SlidingWindow, SlidingWindowFeature
+from pyannote.metrics import diarization
 from tqdm import tqdm
 
 
@@ -41,7 +41,7 @@ class Test:
 
         Args:
             test_dataset (_type_): Hugging Face speaker diarization test dataset
-            model (SegmentationModel): SegmentationModel used at inference. 
+            model (SegmentationModel): SegmentationModel used at inference.
             step (float, optional): Steps between successive generated audio chunks. Defaults to 2.5.
         """
 
@@ -58,7 +58,7 @@ class Test:
         ).shape
         # compute frame resolution:
         self.resolution = self.inference.duration / self.num_frames
-        
+
         self.metrics = {
             "der": DiarizationErrorRate(0.5).to(self.device),
             "confusion": SpeakerConfusionRate(0.5).to(self.device),
@@ -67,8 +67,8 @@ class Test:
         }
 
     def predict(self, file):
-        """Make a prediction on a dataset row, 
-            using pyannote inference object. 
+        """Make a prediction on a dataset row,
+            using pyannote inference object.
 
         Args:
             file (_type_): _description_
@@ -91,7 +91,7 @@ class Test:
             file (_type_): dataset row.
 
         Returns:
-            gt: numpy array with shape (num_frames, num_speakers). 
+            gt: numpy array with shape (num_frames, num_speakers).
         """
 
         audio = torch.tensor(file["audio"]["array"]).unsqueeze(0).to(torch.float32)
@@ -117,10 +117,10 @@ class Test:
         return gt
 
     def compute_metrics_on_file(self, file):
-        """coppute and update metrics on a dataset row. 
+        """coppute and update metrics on a dataset row.
 
         Args:
-            file (_type_): a Hugging Face dataset row. 
+            file (_type_): a Hugging Face dataset row.
         """
 
         gt = self.compute_gt(file)
@@ -152,9 +152,9 @@ class Test:
             self.metrics["confusion"](pred, target)
 
     def compute_metrics(self):
-        """Main method, used to compute speaker diarization metrics on test_dataset. 
+        """Main method, used to compute speaker diarization metrics on test_dataset.
         Returns:
-            dict: metric values. 
+            dict: metric values.
         """
 
         for file in tqdm(self.test_dataset):
@@ -168,11 +168,9 @@ class Test:
         }
 
 
-
-class TestPipeline(): 
-
+class TestPipeline:
     def __init__(self, test_dataset, pipeline) -> None:
-        
+
         self.test_dataset = test_dataset
 
         (self.device,) = get_devices(needs=1)
@@ -189,7 +187,7 @@ class TestPipeline():
         self.metrics = {
             "der": diarization.DiarizationErrorRate(),
         }
-    
+
     def compute_gt(self, file):
 
         """
@@ -197,7 +195,7 @@ class TestPipeline():
             file (_type_): dataset row.
 
         Returns:
-            gt: numpy array with shape (num_frames, num_speakers). 
+            gt: numpy array with shape (num_frames, num_speakers).
         """
 
         audio = torch.tensor(file["audio"]["array"]).unsqueeze(0).to(torch.float32)
@@ -222,22 +220,26 @@ class TestPipeline():
 
         return gt
 
-    def predict(self, file): 
+    def predict(self, file):
 
         sample = {}
-        sample["waveform"] = torch.from_numpy(file['audio']["array"]).to(self.device, dtype=self.pipeline._segmentation.model.dtype).unsqueeze(0)
-        sample["sample_rate"] = file['audio']['sampling_rate']
+        sample["waveform"] = (
+            torch.from_numpy(file["audio"]["array"])
+            .to(self.device, dtype=self.pipeline._segmentation.model.dtype)
+            .unsqueeze(0)
+        )
+        sample["sample_rate"] = file["audio"]["sampling_rate"]
 
         prediction = self.pipeline(sample)
 
         return prediction
-        
+
     def compute_metrics_on_file(self, file):
 
         pred = self.predict(file)
         gt = self.compute_gt(file)
 
-        sliding_window = SlidingWindow(start=0, step=self.resolution, duration=self.resolution)        
+        sliding_window = SlidingWindow(start=0, step=self.resolution, duration=self.resolution)
         gt = SlidingWindowFeature(data=gt, sliding_window=sliding_window)
 
         gt = self.pipeline.to_annotation(
@@ -246,25 +248,20 @@ class TestPipeline():
             min_duration_off=self.pipeline.segmentation.min_duration_off,
         )
 
-        mapping = {
-                label: expected_label
-                for label, expected_label in zip(gt.labels(), self.pipeline.classes())
-            }
-        
+        mapping = {label: expected_label for label, expected_label in zip(gt.labels(), self.pipeline.classes())}
+
         gt = gt.rename_labels(mapping=mapping)
 
-        der = self.metrics['der'](pred, gt)
+        der = self.metrics["der"](pred, gt)
 
-        return der         
+        return der
 
     def compute_metrics(self):
 
         der = 0
         for file in tqdm(self.test_dataset):
             der += self.compute_metrics_on_file(file)
-            
+
         der /= len(self.test_dataset)
 
-        return {
-            'der': der
-        }
+        return {"der": der}

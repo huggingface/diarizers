@@ -33,7 +33,6 @@ class Preprocess:
         - "audio": Audio feature.
         - "speakers": The list of audio speakers, with their order of appearance.
         - "timestamps_start": A list of timestamps indicating the start of each speaker segment.
-       flake8>=3.8.3
         - "timestamps_end": A list of timestamps indicating the end of each speaker segment.
     to a preprocessed dataset ready to be used with the HF Trainer.
     """
@@ -59,7 +58,9 @@ class Preprocess:
         self.model = SegmentationModel(config).to_pyannote_model()
 
         # Get the number of frames associated to a chunk:
-        _, self.num_frames_per_chunk, _ = self.model(torch.rand((1, int(self.chunk_duration * self.sample_rate)))).shape
+        _, self.num_frames_per_chunk, _ = self.model(
+            torch.rand((1, int(self.chunk_duration * self.sample_rate)))
+        ).shape
 
     def get_labels_in_file(self, file):
         """Get speakers in file.
@@ -160,7 +161,7 @@ class Preprocess:
 
         for start, end, label in zip(start_idx, end_idx, chunk_segments["labels"]):
             mapped_label = mapping[label]
-            y[start:end+1, mapped_label] = 1
+            y[start : end + 1, mapped_label] = 1
 
         return waveform, y, labels
 

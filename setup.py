@@ -87,6 +87,8 @@ _deps = [
     "importlib_metadata",
     "datasets[audio]>=2.11.0",
     "pyannote.audio",
+    "audiomentations",
+    "denoiser",
 ]
 
 # this is a lookup table with items like:
@@ -160,9 +162,12 @@ extras = {}
 extras["quality"] = deps_list("black", "isort", "flake8")
 
 
-extras["dev"] = extras["quality"] + deps_list("transformers", "accelerate", "datasets[audio]", "pyannote.audio")
+extras["dev"] = extras["quality"] + deps_list("transformers", "accelerate", "datasets[audio]", "pyannote.audio", "audiomentations", "denoiser")
 
 install_requires = [
+    deps['black'],
+    deps['isort'],
+    deps['flake8'], 
     deps["torch"],
     deps["importlib_metadata"],
     deps["filelock"],
@@ -171,6 +176,8 @@ install_requires = [
     deps["accelerate"],
     deps["datasets[audio]"],
     deps["pyannote.audio"],
+    deps['audiomentations'],
+    deps['denoiser'],
 ]
 
 setup(
