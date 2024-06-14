@@ -189,8 +189,9 @@ class SyntheticDataset:
         # Create a mapping from speaker samples --> indexes in speakers_to_sample_from_dataset
         self.speaker_indexes_in_dataset = {}
         self.speakers_to_sample_from.sort()
-        self.speakers_to_sample_from_dataset = self.speakers_to_sample_from_dataset.sort("client_id")
+        self.speakers_to_sample_from_dataset = self.speakers_to_sample_from_dataset.sort(self.speaker_column_name)
         speaker_appearance_count = dict(speaker_appearance_count)
+        speaker_appearance_count = {str(key): value for key, value in speaker_appearance_count.items()}
         index = 0
         for speaker in tqdm(self.speakers_to_sample_from):
             self.speaker_indexes_in_dataset[str(speaker)] = list(
@@ -259,7 +260,7 @@ class SyntheticDataset:
         self.sampled_speakers = random.sample(self.speakers_to_sample_from, self.nb_speakers_per_meeting)
         # Get the pool of segments associated with the speakers:
         self.audio_index_pool = {
-            speaker: self.speaker_indexes_in_dataset[speaker].copy() for speaker in self.sampled_speakers
+            speaker: self.speaker_indexes_in_dataset[str(speaker)].copy() for speaker in self.sampled_speakers
         }
 
         self.current_speaker = self.sampled_speakers[0]
@@ -562,7 +563,7 @@ class SyntheticDataset:
                 speakers_vad,
             ) = self.refine_audio_segment_timestamps(
                 audio_segment,
-                element["client_id"],
+                element[self.speaker_column_name],
             )
             file_timestamps_start.append(timestamps_start_vad)
             file_timestamps_end.append(timestamps_end_vad)
