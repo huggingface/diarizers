@@ -111,7 +111,7 @@ if __name__ == "__main__":
     # Preprocess:
     if training_args.do_train:
         train_set = dataset[str(train_split_name)].map(
-            lambda file: preprocessor(file, random=False, overlap=0.5), 
+            lambda file, preprocessor=preprocessor: preprocessor(file, random=False, overlap=0.5), 
             num_proc=data_args.preprocessing_num_workers, 
             remove_columns=next(iter(dataset.values())).column_names,
             batched=True, 
@@ -120,7 +120,7 @@ if __name__ == "__main__":
 
     if training_args.do_eval: 
         val_set = dataset[str(val_split_name)].map(
-            lambda file: preprocessor(file, random=False, overlap=0.0), 
+            lambda file, preprocessor=preprocessor: preprocessor(file, random=False, overlap=0.0), 
             num_proc=data_args.preprocessing_num_workers, 
             remove_columns=next(iter(dataset.values())).column_names,
             batched=True, 
