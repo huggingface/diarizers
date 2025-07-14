@@ -64,7 +64,7 @@ def test_pyannote_diarizers_preprocessing_equivalence(path_to_ami):
     # Select the first example (= meeting IS1002c), preprocess it and extract the first chunk:
     ami_hub_example = ami_dataset_hub['train'].select(range(1))
     ami_hub_example = ami_hub_example.map(
-        lambda file: preprocessor(file, random=False, overlap=0.0),
+        lambda file, preprocessor=preprocessor: preprocessor(file, random=False, overlap=0.0),
         num_proc=1,
         remove_columns=ami_hub_example.column_names,
         batched=True,
