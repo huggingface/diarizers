@@ -79,7 +79,7 @@ _deps = [
     "accelerate>=0.14.0",
     "torch>=1.9",
     "transformers>=4.40.0",
-    "black==22.8",
+    "black>=24.3.0",
     "isort>=5.5.4",
     "flake8>=3.8.3",
     "numpy",
